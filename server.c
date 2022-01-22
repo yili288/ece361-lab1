@@ -19,7 +19,7 @@ int main() {
     //open UDP socket
     int udp_fd = socket(AF_INET, SOCK_DGRAM, 0);
     printf("fd %d\n", udp_fd);
-
+    
     struct sockaddr_in server_addr= {0};   //server host & IP address
     server_addr.sin_family = AF_INET;  //problem here!
     server_addr.sin_port = htons(user_input);
@@ -30,26 +30,34 @@ int main() {
     if(bind_result < 0){
         return -1;
     }
-    //liten to port, breakdown the message
+
+    //liten to port
     char receive_buf[100];
     struct sockaddr_storage* client_addr= {0};     //client host & IP address
     socklen_t clientAddrLen = sizeof(client_addr);
 
     ssize_t bytes_received = 0;
-    bytes_received = recvfrom(udp_fd, receive_buf, sizeof(receive_buf), 0, (struct sockaddr*) client_addr, &clientAddrLen);
-    
 
-    //Reply client
-    char* message = "";
-    if (strcmp(receive_buf, "ftp") == 0){
-        message = "yes";
-    }else{
-        message = "no";
+    while(){       //waits until a message is received 
+        bytes_received = recvfrom(udp_fd, receive_buf, sizeof(receive_buf), 0, (struct sockaddr*) client_addr, &clientAddrLen);
+
+        if(bytes_received > 0){
+            //Reply client
+            char* message = "";
+            if (strcmp(receive_buf, "ftp") == 0){
+                message = "yes";
+            }else{
+                message = "no";
+            }
+
+            int size = strlen(message) + 1;
+            ssize_t bytes_sent = 0;
+            bytes_sent = sendto(udp_fd, message, size, 0, (struct sockaddr*) client_addr, sizeof(client_addr));
+        
+            if(bytes_sent < 0){
+                printf("fail to send yes/no reply to client\n");
+            }
+        }
     }
-
-    int size = strlen(message) + 1;
-    ssize_t bytes_sent = 0;
-    bytes_sent = sendto(udp_fd, message, size, 0, (struct sockaddr*) client_addr, sizeof(client_addr));
-    
    return 0;
 }
