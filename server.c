@@ -19,7 +19,7 @@ int main() {
     //open UDP socket
     int udp_fd = socket(AF_INET, SOCK_DGRAM, 0);
     printf("fd %d\n", udp_fd);
-    
+
     struct sockaddr_in server_addr= {0};   //server host & IP address
     server_addr.sin_family = AF_INET;  //problem here!
     server_addr.sin_port = htons(user_input);
@@ -38,7 +38,7 @@ int main() {
 
     ssize_t bytes_received = 0;
 
-    while(){       //waits until a message is received 
+    while(1){       //waits until a message is received 
         bytes_received = recvfrom(udp_fd, receive_buf, sizeof(receive_buf), 0, (struct sockaddr*) client_addr, &clientAddrLen);
 
         if(bytes_received > 0){
