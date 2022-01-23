@@ -22,8 +22,6 @@ int main(int argc, char *argv[]) {
    // open  socket
    int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
    
-   printf("fd %d\n", sockfd);
-
    struct addrinfo hints,  *servinfo;    // server host & IP address
    memset(&hints, 0, sizeof(hints));
    hints.ai_family = AF_INET;      // IPv4 
