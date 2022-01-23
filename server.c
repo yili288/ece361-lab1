@@ -32,30 +32,34 @@ int main() {
     }
 
     //liten to port
-    char receive_buf[100];
-    struct sockaddr_storage* client_addr= {0};     //client host & IP address
+    char receive_buf[10];
+    struct sockaddr_storage client_addr= {0};     //client host & IP address
     socklen_t clientAddrLen = sizeof(client_addr);
 
     ssize_t bytes_received = 0;
 
     while(1){       //waits until a message is received 
-        bytes_received = recvfrom(udp_fd, receive_buf, sizeof(receive_buf), 0, (struct sockaddr*) client_addr, &clientAddrLen);
+        bytes_received = recvfrom(udp_fd, receive_buf, sizeof(receive_buf), 0, (struct sockaddr*) &client_addr, &clientAddrLen);
 
         if(bytes_received > 0){
+            printf("buff %s\n", receive_buf);
+
             //Reply client
             char* message = "";
-            if (strcmp(receive_buf, "ftp") == 0){
-                message = "yes";
+            if (strncmp(receive_buf, "ftp", 3) == 0){   //not read as true
+                message = "yes\n";
             }else{
-                message = "no";
+                message = "no\n";
             }
 
             int size = strlen(message) + 1;
             ssize_t bytes_sent = 0;
-            bytes_sent = sendto(udp_fd, message, size, 0, (struct sockaddr*) client_addr, sizeof(client_addr));
+            bytes_sent = sendto(udp_fd, message, size, 0, (struct sockaddr*) &client_addr, clientAddrLen);
         
             if(bytes_sent < 0){
                 printf("fail to send yes/no reply to client\n");
+            }else{
+                printf("client successfully replied\n");
             }
         }
     }
