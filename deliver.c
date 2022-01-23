@@ -62,7 +62,7 @@ int main(int argc, char *argv[]) {
 
    // send "ftp" to server
    int numbytes;
-   numbytes = sendto(sockfd, "ftp", 3, 0, servinfo->ai_addr, servinfo->ai_addrlen);
+   numbytes = sendto(sockfd, "ftp\n", 3, 0, servinfo->ai_addr, servinfo->ai_addrlen);
    
    if (numbytes < 0) {
       fprintf(stderr,"Sendto error\n");
@@ -84,7 +84,7 @@ int main(int argc, char *argv[]) {
 
       if(numbytes > 0) {
          // check if message is "yes" - print "A file transfer can start."
-         if (strcmp(buf, "yes") == 0) {
+         if (strncmp(buf, "yes", 3) == 0) {
             printf("A file transfer can start.\n");
          }
       }
