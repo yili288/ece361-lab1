@@ -11,14 +11,16 @@ int main() {
 
     // take in user input - port number
     int user_input;
-    scanf("%d", &user_input);
+    char ftp[3];
+
+    scanf("%s %d", ftp, &user_input);
     if(user_input < 1024 && user_input > 65535){
         printf("port number invalid\n");
         return 0;
     }
     //open UDP socket
     int udp_fd = socket(AF_INET, SOCK_DGRAM, 0);
-    printf("fd %d\n", udp_fd);
+    printf("fd %d %d\n", udp_fd, user_input);
 
     struct sockaddr_in server_addr= {0};   //server host & IP address
     server_addr.sin_family = AF_INET;  //problem here!
