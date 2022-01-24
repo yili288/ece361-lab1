@@ -74,20 +74,17 @@ int main(int argc, char *argv[]) {
    socklen_t from_addr_len = sizeof(from_addr);
    char buf[50]; 
    
-   while(1) {       // waits until a message is received 
-      numbytes = recvfrom(sockfd, buf, sizeof(buf), 0, (struct sockaddr *) from_addr, &from_addr_len);
+   numbytes = recvfrom(sockfd, buf, sizeof(buf), 0, (struct sockaddr *) from_addr, &from_addr_len);
 
-      if (numbytes < 0) {
-         fprintf(stderr,"Recvfrom error\n");
-         return 0;
-      }
+   if (numbytes < 0) {
+      fprintf(stderr,"Recvfrom error\n");
+      return 0;
+   }
 
-      if(numbytes > 0) {
-         // check if message is "yes" - print "A file transfer can start."
-         if (strncmp(buf, "yes", 3) == 0) {
-            printf("A file transfer can start.\n");
-         }
-         break;
+   if(numbytes > 0) {
+      // check if message is "yes" - print "A file transfer can start."
+      if (strncmp(buf, "yes", 3) == 0) {
+         printf("A file transfer can start.\n");
       }
    }
 
