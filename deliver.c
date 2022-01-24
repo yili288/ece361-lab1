@@ -27,7 +27,7 @@ int main(int argc, char *argv[]) {
    hints.ai_family = AF_INET;      // IPv4 
    hints.ai_socktype = SOCK_DGRAM;
 
-   // get server info, exit if issues occur
+   // get server info using "ug###", exit if issues occur
    if (getaddrinfo(argv[1], argv[2], &hints, &servinfo) !=0){
       fprintf(stderr,"Getaddrinfo error\n");
       return 0;
@@ -87,6 +87,7 @@ int main(int argc, char *argv[]) {
          if (strncmp(buf, "yes", 3) == 0) {
             printf("A file transfer can start.\n");
          }
+         break;
       }
    }
 
