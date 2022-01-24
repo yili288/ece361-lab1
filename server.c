@@ -20,7 +20,7 @@ int main() {
     }
     //open UDP socket
     int udp_fd = socket(AF_INET, SOCK_DGRAM, 0);
-    printf("fd %d %d\n", udp_fd, user_input);
+    //printf("fd %d %d\n", udp_fd, user_input);
 
     struct sockaddr_in server_addr= {0};   //server host & IP address
     server_addr.sin_family = AF_INET;  //problem here!
@@ -44,7 +44,7 @@ int main() {
         bytes_received = recvfrom(udp_fd, receive_buf, sizeof(receive_buf), 0, (struct sockaddr*) &client_addr, &clientAddrLen);
 
         if(bytes_received > 0){
-            printf("buff %s\n", receive_buf);
+            //printf("buff %s\n", receive_buf);
 
             //Reply client
             char* message = "";
