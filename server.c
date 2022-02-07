@@ -8,9 +8,9 @@
 
 #define BUFSIZE 1100
 
-struct packet stringToPacket(char * buffer){
+Packets stringToPacket(char * buffer){
     char * current_char = buffer;
-    struct packet recv_packet = {0};
+    Packets recv_packet = {0};
     
     char total_frag[4] = "";  
     while(current_char[0] != ':'){
@@ -96,7 +96,7 @@ int main(int argc, char *argv[]) {
 
         if(bytes_received > 0){
             //printf("buff %s\n", receive_buf);
-            struct packet receive_pack = stringToPacket(receive_buf);
+            Packets receive_pack = stringToPacket(receive_buf);
 
             //Reply client
             char* message = "";
