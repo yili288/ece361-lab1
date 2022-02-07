@@ -101,6 +101,7 @@ int main(int argc, char *argv[]) {
 }
 
 Packets *prepare_file(char *file_name, int sockfd,  struct addrinfo *servinfo, int num_bytes) {
+   // oepen file for reading
    FILE *transfer_file;
    transfer_file = fopen(file_name, "rb");
    
@@ -124,8 +125,10 @@ Packets *prepare_file(char *file_name, int sockfd,  struct addrinfo *servinfo, i
    Packets  *previous, *root, *next;
 
    for (int fragment = 1; fragment <= total_frag; fragment++) { 
+      // allocate space for packet
       Packets *current = malloc(sizeof(Packets));
-
+      
+      // check if it's root
       if (fragment == 1) {
          root = current;
       }     
@@ -136,44 +139,50 @@ Packets *prepare_file(char *file_name, int sockfd,  struct addrinfo *servinfo, i
       current->total_frag = total_frag;
       
       current->frag_no = fragment;
-   
+      
+      // if last fragment, size is not 1000, will be remainder
       if (fragment == total_frag) {
          current->size = remainder;
       }
       else {
          current->size = 1000;
       }
-      printf("current fragment size: %d\n", current->size); //-----
-      
+            
       current->filename = file_name;
 
       char file_data[current->size];
-
+      
+      // get max amount of file data
       if (fragment != total_frag) {
          fread(file_data, sizeof(char), 1000, transfer_file);
       }
       else {
          fread(file_data, sizeof(char), remainder, transfer_file); 
       }
+      
+      // place data into struct
       memcpy(current->filedata, file_data, current->size);
-
+      
+      // update linked list
       current->next = NULL;
       previous = current;
    }
-
+   
    Packets *packets_current = root;
-
+   
+   // keep sending packets until end of linked list is reached
    while (packets_current != NULL) {
+      // buffer to hold data that will be sent
       char packet_buffer[1100];
       
+      // save string with all packet information apart from filedata
       int message = sprintf(packet_buffer, "\n%d:%d:%d:%s:", packets_current->total_frag, packets_current->frag_no, packets_current->size, packets_current->filename);
       memcpy(&packet_buffer[message], packets_current->filedata, packets_current->size);
-      printf("%s\n", packet_buffer);
-
+      
+      // send packet
       num_bytes = sendto(sockfd, packet_buffer, message+packets_current->size, 0, servinfo->ai_addr, servinfo->ai_addrlen);
-      printf("sent\n");
 
-      // receive message from server
+      // receive message from server that packet was properly sent
       struct sockaddr_from* from_addr;
       socklen_t from_addr_len = sizeof(from_addr);
       char buf[50]; 
