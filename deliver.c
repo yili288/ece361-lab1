@@ -118,7 +118,7 @@ Packets *prepare_file(char *file_name, int sockfd,  struct addrinfo *servinfo, i
 
    // create a list of packets, containing all info
    Packets  *previous, *root, *next;
-   for (int fragment = 1; fragment <= total_frag; fragment++) { 
+   for (int fragment = 1; fragment <= total_frag; fragment++) { // update max -----------------------------------------
       Packets *current = malloc(sizeof(Packets));
       if (fragment == 1) {
          root = current;
@@ -152,6 +152,8 @@ Packets *prepare_file(char *file_name, int sockfd,  struct addrinfo *servinfo, i
    }
    // set up packets
    Packets *packets_current = root;
+   
+   int packet_num = 1;
 
    while (packets_current != NULL) {
       char packet_buffer[1100];
@@ -167,13 +169,22 @@ Packets *prepare_file(char *file_name, int sockfd,  struct addrinfo *servinfo, i
       socklen_t from_addr_len = sizeof(from_addr);
       char buf[50]; 
    
-      num_bytes = recvfrom(sockfd, buf, sizeof(buf), 0, (struct sockaddr *) &from_addr, &from_addr_len);
+      // num_bytes = recvfrom(sockfd, buf, sizeof(buf), 0, (struct sockaddr *) &from_addr, &from_addr_len);
       
-      //find 'yes' in buffer
-      if (strncmp(buf, "yes", 3) == 0) {    
-         printf("received\n");
-         num_bytes = 0;
+      int received = 1;
+      while (received == 1) {
+         num_bytes = recvfrom(sockfd, buf, sizeof(buf), 0, (struct sockaddr *) &from_addr, &from_addr_len);
+
+         if (num_bytes > 0) {
+            // check if message is "yes" - print "A file transfer can start."
+            if (strncmp(buf, "yes", 3) == 0) {
+               printf("received packet %d\n", packet_num);
+               packet_num = packet_num + 1;
+               received = 0;
+            }
+         }  
       }
+      
       packets_current = packets_current -> next;
    }
 
