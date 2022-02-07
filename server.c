@@ -53,7 +53,6 @@ struct packet stringToPacket(char * buffer){
 }
 
 int main(int argc, char *argv[]) {
-    printf("Hello from server!\n");
 
     // check number of arguments
     if(argc != 2){
@@ -64,7 +63,7 @@ int main(int argc, char *argv[]) {
     // take in user input 
     char * ptr;
     int port_num = strtol(argv[1], &ptr , 10);
-    printf("%d\n", port_num);
+    printf("Server is receiving on port %d\n", port_num);
     if(port_num < 1024 && port_num > 65535){
         printf("port number invalid\n");
         return 0;
@@ -112,20 +111,19 @@ int main(int argc, char *argv[]) {
             bytes_sent = sendto(udp_fd, message, size, 0, (struct sockaddr*) &client_addr, clientAddrLen);
         
             if(bytes_sent < 0){
-                printf("fail to send yes/no reply to client\n");
-            }else{
-                printf("client successfully replied\n");
+                printf("File transfer failed\n");
             }
-            
+                            
             //Copy data into new file
             FILE* file_ptr = fopen(receive_pack.filename, "a");
 
             if(file_ptr != NULL){
                 fprintf(file_ptr, receive_pack.filedata);
             }
-
+            
             if(receive_pack.frag_no = receive_pack.total_frag){
                 fclose(file_ptr);
+                printf("Client file transferred successfully\n");
             }
         }
     }
