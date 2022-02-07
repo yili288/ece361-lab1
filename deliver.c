@@ -10,6 +10,10 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#include "packet.h"
+
+Packets *prepare_file(char *file_name, int sockfd, struct addrinfo *servinfo, int num_bytes);
+
 
 int main(int argc, char *argv[]) {
    
@@ -39,9 +43,9 @@ int main(int argc, char *argv[]) {
 
    // read what the user inputted
    char type[50];
-   char fileName[50];
+   char file_name[50];
    scanf("%s", type);
-   scanf("%s", fileName);
+   scanf("%s", file_name);
 
    // check if a file exists
    if (strcmp(type, "ftp") != 0) {
@@ -50,7 +54,7 @@ int main(int argc, char *argv[]) {
    }
    else {
       // doesnt exist: exit
-      if (access(fileName, F_OK) == -1) {
+      if (access(file_name, F_OK) == -1) {
          fprintf(stderr,"File doesn't exist\n");
          return 0;
       }
@@ -61,10 +65,10 @@ int main(int argc, char *argv[]) {
    }
 
    // send "ftp" to server
-   int numbytes;
-   numbytes = sendto(sockfd, "ftp\n", 3, 0, servinfo->ai_addr, servinfo->ai_addrlen);
+   int num_bytes;
+   num_bytes = sendto(sockfd, "ftp\n", 3, 0, servinfo->ai_addr, servinfo->ai_addrlen);
    
-   if (numbytes < 0) {
+   if (num_bytes < 0) {
       fprintf(stderr,"Sendto error\n");
          return 0;
    }
@@ -74,21 +78,116 @@ int main(int argc, char *argv[]) {
    socklen_t from_addr_len = sizeof(from_addr);
    char buf[50]; 
    
-   numbytes = recvfrom(sockfd, buf, sizeof(buf), 0, (struct sockaddr *) from_addr, &from_addr_len);
+   num_bytes = recvfrom(sockfd, buf, sizeof(buf), 0, (struct sockaddr *) from_addr, &from_addr_len);
 
-   if (numbytes < 0) {
+   if (num_bytes < 0) {
       fprintf(stderr,"Recvfrom error\n");
       return 0;
    }
 
-   if(numbytes > 0) {
+   if (num_bytes > 0) {
       // check if message is "yes" - print "A file transfer can start."
       if (strncmp(buf, "yes", 3) == 0) {
          printf("A file transfer can start.\n");
       }
    }
 
+   // send packets
+   prepare_file(file_name, sockfd, servinfo, num_bytes);
+   
    close(sockfd);
 
    return 0;
+}
+
+Packets *prepare_file(char *file_name, int sockfd,  struct addrinfo *servinfo, int num_bytes) {
+   FILE *transfer_file;
+   transfer_file = fopen(file_name, "rb");
+   
+   // check if file is corrupt
+
+   // get length of file
+   fseek(transfer_file, 0, SEEK_END);
+   int transfer_file_size = ftell(transfer_file);
+   fseek(transfer_file, 0, SEEK_SET);
+
+   // determine number of fragments of file
+   int total_frag = (transfer_file_size/1000) + 1; 
+
+   // length remaining of last frag
+   int remainder = transfer_file_size%1000;
+
+   // allocate memory for packets
+   char** all_packets_buffer =  malloc(sizeof(char*) * total_frag);
+
+   // create a list of packets, containing all info
+   Packets  *previous, *root, *next;
+
+   for (int fragment = 1; fragment <= total_frag; fragment++) { 
+      Packets *current = malloc(sizeof(Packets));
+
+      if (fragment == 1) {
+         root = current;
+      }     
+      else {
+         previous->next = current;
+      }
+
+      current->total_frag = total_frag;
+      
+      current->frag_no = fragment;
+   
+      if (fragment == total_frag) {
+         current->size = remainder;
+      }
+      else {
+         current->size = 1000;
+      }
+      printf("current fragment size: %d\n", current->size); //-----
+      
+      current->filename = file_name;
+
+      char file_data[current->size];
+
+      if (fragment != total_frag) {
+         fread(file_data, sizeof(char), 1000, transfer_file);
+      }
+      else {
+         fread(file_data, sizeof(char), remainder, transfer_file); 
+      }
+      memcpy(current->filedata, file_data, current->size);
+
+      current->next = NULL;
+      previous = current;
+   }
+
+   Packets *packets_current = root;
+
+   while (packets_current != NULL) {
+      char packet_buffer[1100];
+      
+      int message = sprintf(packet_buffer, "\n%d:%d:%d:%s:", packets_current->total_frag, packets_current->frag_no, packets_current->size, packets_current->filename);
+      memcpy(&packet_buffer[message], packets_current->filedata, packets_current->size);
+      printf("%s\n", packet_buffer);
+
+      num_bytes = sendto(sockfd, packet_buffer, message+packets_current->size, 0, servinfo->ai_addr, servinfo->ai_addrlen);
+      printf("sent\n");
+
+      // receive message from server
+      struct sockaddr_from* from_addr;
+      socklen_t from_addr_len = sizeof(from_addr);
+      char buf[50]; 
+   
+      num_bytes = recvfrom(sockfd, buf, sizeof(buf), 0, (struct sockaddr *) from_addr, &from_addr_len);
+      
+      if (num_bytes > 0) {
+         printf("received\n");
+         num_bytes = 0;
+      }
+
+      packets_current = packets_current -> next;
+   }
+
+
+   return root;
 }
