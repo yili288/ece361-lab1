@@ -9,8 +9,13 @@
 #define BUFSIZE 1100
 
 Packets stringToPacket(char * buffer){
+    
     char * current_char = buffer;
     Packets recv_packet = {0};
+
+    if(buffer == NULL){
+        return recv_packet;
+    }
     
     char total_frag[4] = "";  
     while(current_char[0] != ':'){
@@ -91,40 +96,61 @@ int main(int argc, char *argv[]) {
 
     ssize_t bytes_received = 0;
 
+    int initial_call = 0;
+
     while(1){       //waits until a message is received 
         bytes_received = recvfrom(udp_fd, receive_buf, sizeof(receive_buf), 0, (struct sockaddr*) &client_addr, &clientAddrLen);
 
         if(bytes_received > 0){
             //printf("buff %s\n", receive_buf);
-            Packets receive_pack = stringToPacket(receive_buf);
-
-            //Reply client
             char* message = "";
-            if (receive_pack.total_frag > 0){
-                message = "yes\n";       //success
-            }else{
-                message = "no\n";
-            }
-            
-            int size = strlen(message) + 1;
-            ssize_t bytes_sent = 0;
-            bytes_sent = sendto(udp_fd, message, size, 0, (struct sockaddr*) &client_addr, clientAddrLen);
-        
-            if(bytes_sent < 0){
-                printf("File transfer failed\n");
-            }
-                            
-            //Copy data into new file
-            FILE* file_ptr = fopen(receive_pack.filename, "a");
 
-            if(file_ptr != NULL){
-                fprintf(file_ptr, receive_pack.filedata);
-            }
+            if(initial_call == 0){   //no call yet
+                if(strncmp(receive_buf, "ftp", 3) == 0){
+                    //Reply client
+                    
+                    message = "yes\n";       //success
+                    initial_call = 1;
+                    int size = strlen(message) + 1;
+                    ssize_t bytes_sent = 0;
+                    bytes_sent = sendto(udp_fd, message, size, 0, (struct sockaddr*) &client_addr, clientAddrLen);
+                
+                    if(bytes_sent < 0){
+                        printf("File transfer failed\n");
+                    }
+                }
+            }else{ //call done
+                Packets receive_pack = stringToPacket(receive_buf);
+
+                //Reply client
+                if (receive_pack.total_frag > 0){
+                    message = "yes\n";       //success
+                }else{
+                    message = "no\n";
+                }
             
-            if(receive_pack.frag_no = receive_pack.total_frag){
-                fclose(file_ptr);
-                printf("Client file transferred successfully\n");
+                int size = strlen(message) + 1;
+                ssize_t bytes_sent = 0;
+                bytes_sent = sendto(udp_fd, message, size, 0, (struct sockaddr*) &client_addr, clientAddrLen);
+            
+                if(bytes_sent < 0){
+                    printf("File transfer failed\n");
+                }
+            
+                            
+                //Copy data into new file
+                FILE* file_ptr = fopen(receive_pack.filename, "a");
+
+                if(file_ptr != NULL){
+                    fprintf(file_ptr, receive_pack.filedata);
+                }
+                
+                if(receive_pack.frag_no == receive_pack.total_frag){
+                    fclose(file_ptr);
+                    printf("Client file transferred successfully\n");
+                }
             }
+
         }
     }
    return 0;
