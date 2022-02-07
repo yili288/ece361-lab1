@@ -1,5 +1,4 @@
 // utilized Beej's Guide (pg. 40) for assistance with coding some parts
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -11,9 +10,9 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include "packet.h"
+#include <time.h>
 
 Packets *prepare_file(char *file_name, int sockfd, struct addrinfo *servinfo, int num_bytes);
-
 
 int main(int argc, char *argv[]) {
    
@@ -30,23 +29,19 @@ int main(int argc, char *argv[]) {
    memset(&hints, 0, sizeof(hints));
    hints.ai_family = AF_INET;      // IPv4 
    hints.ai_socktype = SOCK_DGRAM;
-
    // get server info using "ug###", exit if issues occur
    if (getaddrinfo(argv[1], argv[2], &hints, &servinfo) !=0){
       fprintf(stderr,"Getaddrinfo error\n");
       return 0;
    }
-
    // ask user for file in particular format  
    printf("Input a message of the following form:\n");
    printf("        ftp <file name>\n");
-
    // read what the user inputted
    char type[50];
    char file_name[50];
    scanf("%s", type);
    scanf("%s", file_name);
-
    // check if a file exists
    if (strcmp(type, "ftp") != 0) {
       fprintf(stderr, "Only type ftp accepted\n");
@@ -64,6 +59,9 @@ int main(int argc, char *argv[]) {
       }
    }
 
+   clock_t start, end;
+   start = clock();
+
    // send "ftp" to server
    int num_bytes;
    num_bytes = sendto(sockfd, "ftp\n", 3, 0, servinfo->ai_addr, servinfo->ai_addrlen);
@@ -72,19 +70,16 @@ int main(int argc, char *argv[]) {
       fprintf(stderr,"Sendto error\n");
          return 0;
    }
-
    // receive message from server
    struct sockaddr_from* from_addr;
    socklen_t from_addr_len = sizeof(from_addr);
    char buf[50]; 
    
-   num_bytes = recvfrom(sockfd, buf, sizeof(buf), 0, (struct sockaddr *) from_addr, &from_addr_len);
-
+   num_bytes = recvfrom(sockfd, buf, sizeof(buf), 0, (struct sockaddr *) &from_addr, &from_addr_len);
    if (num_bytes < 0) {
       fprintf(stderr,"Recvfrom error\n");
       return 0;
    }
-
    if (num_bytes > 0) {
       // check if message is "yes" - print "A file transfer can start."
       if (strncmp(buf, "yes", 3) == 0) {
@@ -92,21 +87,21 @@ int main(int argc, char *argv[]) {
       }
    }
 
-   // send packets
-   prepare_file(file_name, sockfd, servinfo, num_bytes);
-   
-   close(sockfd);
+   end = clock();
+   double time = (((double)(end-start))/CLOCKS_PER_SEC);
+   printf("RTT = %.5f s\n", time);
 
+   // set up packets
+   Packets *A = prepare_file(file_name, sockfd, servinfo, num_bytes);
+
+   close(sockfd);
    return 0;
 }
-
 Packets *prepare_file(char *file_name, int sockfd,  struct addrinfo *servinfo, int num_bytes) {
-   // oepen file for reading
    FILE *transfer_file;
    transfer_file = fopen(file_name, "rb");
    
    // check if file is corrupt
-
    // get length of file
    fseek(transfer_file, 0, SEEK_END);
    int transfer_file_size = ftell(transfer_file);
@@ -123,80 +118,63 @@ Packets *prepare_file(char *file_name, int sockfd,  struct addrinfo *servinfo, i
 
    // create a list of packets, containing all info
    Packets  *previous, *root, *next;
-
    for (int fragment = 1; fragment <= total_frag; fragment++) { 
-      // allocate space for packet
       Packets *current = malloc(sizeof(Packets));
-      
-      // check if it's root
       if (fragment == 1) {
          root = current;
       }     
       else {
          previous->next = current;
       }
-
       current->total_frag = total_frag;
       
       current->frag_no = fragment;
-      
-      // if last fragment, size is not 1000, will be remainder
+   
       if (fragment == total_frag) {
          current->size = remainder;
       }
       else {
          current->size = 1000;
       }
-            
-      current->filename = file_name;
-
-      char file_data[current->size];
       
-      // get max amount of file data
+      current->filename = file_name;
+      char file_data[current->size];
       if (fragment != total_frag) {
          fread(file_data, sizeof(char), 1000, transfer_file);
       }
       else {
          fread(file_data, sizeof(char), remainder, transfer_file); 
       }
-      
-      // place data into struct
       memcpy(current->filedata, file_data, current->size);
       
-      // update linked list
-      current->next = NULL;
+      current->next=NULL;
       previous = current;
    }
-   
+   // set up packets
    Packets *packets_current = root;
-   
-   // keep sending packets until end of linked list is reached
+
    while (packets_current != NULL) {
-      // buffer to hold data that will be sent
       char packet_buffer[1100];
       
-      // save string with all packet information apart from filedata
       int message = sprintf(packet_buffer, "\n%d:%d:%d:%s:", packets_current->total_frag, packets_current->frag_no, packets_current->size, packets_current->filename);
       memcpy(&packet_buffer[message], packets_current->filedata, packets_current->size);
-      
-      // send packet
-      num_bytes = sendto(sockfd, packet_buffer, message+packets_current->size, 0, servinfo->ai_addr, servinfo->ai_addrlen);
 
-      // receive message from server that packet was properly sent
+      num_bytes = sendto(sockfd, packet_buffer, message+packets_current->size, 0, servinfo->ai_addr, servinfo->ai_addrlen);
+      printf("sent\n");
+
+      // receive message from server
       struct sockaddr_from* from_addr;
       socklen_t from_addr_len = sizeof(from_addr);
       char buf[50]; 
    
-      num_bytes = recvfrom(sockfd, buf, sizeof(buf), 0, (struct sockaddr *) from_addr, &from_addr_len);
+      num_bytes = recvfrom(sockfd, buf, sizeof(buf), 0, (struct sockaddr *) &from_addr, &from_addr_len);
       
       if (num_bytes > 0) {
          printf("received\n");
          num_bytes = 0;
       }
-
       packets_current = packets_current -> next;
    }
-
 
    return root;
 }
