@@ -169,7 +169,8 @@ Packets *prepare_file(char *file_name, int sockfd,  struct addrinfo *servinfo, i
    
       num_bytes = recvfrom(sockfd, buf, sizeof(buf), 0, (struct sockaddr *) &from_addr, &from_addr_len);
       
-      if (num_bytes > 0) {
+      //find 'yes' in buffer
+      if (strncmp(buf, "yes", 3) == 0) {    
          printf("received\n");
          num_bytes = 0;
       }
