@@ -12,7 +12,7 @@
 #include "packet.h"
 #include <time.h>
 
-Packets *prepare_file(char *file_name, int sockfd, struct addrinfo *servinfo, int num_bytes);
+Packets *prepare_file(char *file_name, int sockfd, struct addrinfo *servinfo, int num_bytes, struct timeval timeout);
 
 int main(int argc, char *argv[]) {
    
@@ -59,8 +59,18 @@ int main(int argc, char *argv[]) {
       }
    }
 
-   clock_t start, end;
-   start = clock();
+   //clock_t start, end;
+   //start = clock();
+
+   struct timeval start, end, timeout;  //---------------
+   long sample_RTT = 0;
+   long estimated_RTT = 0;
+   long dev_RTT = 0;
+   long timeout_interval = 0;
+   long alpha = 0.125;
+   long beta = 0.25;
+
+   gettimeofday(&start, NULL);  //--------------
 
    // send "ftp" to server
    int num_bytes;
@@ -87,17 +97,28 @@ int main(int argc, char *argv[]) {
       }
    }
 
-   end = clock();
-   double time = (((double)(end-start))/CLOCKS_PER_SEC);
-   printf("RTT = %.5f s\n", time);
+   //end = clock();
+   //double time = (((double)(end-start))/CLOCKS_PER_SEC);
+   gettimeofday(&end, NULL); //-----------------
+   sample_RTT = end.tv_usec - start.tv_usec;
+   printf("RTT = %lu us\n", sample_RTT);
+
+   // calculate timeout value
+   estimated_RTT = (1-alpha)*estimated_RTT + alpha*sample_RTT;
+   dev_RTT = (1-beta)*dev_RTT + beta*abs(sample_RTT-estimated_RTT);
+   timeout_interval = estimated_RTT + 4*dev_RTT;
+   timeout.tv_usec = 3*sample_RTT;
+   num_bytes = setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
+
+   printf("Timeout = %lu us\n", timeout.tv_usec);
 
    // set up packets
-   Packets *A = prepare_file(file_name, sockfd, servinfo, num_bytes);
+   Packets *A = prepare_file(file_name, sockfd, servinfo, num_bytes, timeout);
 
    close(sockfd);
    return 0;
 }
-Packets *prepare_file(char *file_name, int sockfd,  struct addrinfo *servinfo, int num_bytes) {
+Packets *prepare_file(char *file_name, int sockfd,  struct addrinfo *servinfo, int num_bytes, struct timeval timeout) {
    FILE *transfer_file;
    transfer_file = fopen(file_name, "rb");
    
@@ -118,7 +139,7 @@ Packets *prepare_file(char *file_name, int sockfd,  struct addrinfo *servinfo, i
 
    // create a list of packets, containing all info
    Packets  *previous, *root, *next;
-   for (int fragment = 1; fragment <= total_frag; fragment++) { 
+   for (int fragment = 1; fragment <= total_frag; fragment++) { // update max -----------------------------------------
       Packets *current = malloc(sizeof(Packets));
       if (fragment == 1) {
          root = current;
@@ -152,14 +173,19 @@ Packets *prepare_file(char *file_name, int sockfd,  struct addrinfo *servinfo, i
    }
    // set up packets
    Packets *packets_current = root;
-
+   
    int packet_num = 1;
+   int resend = 1;
+   long total_time = 0;
+   struct timeval start, end;
 
    while (packets_current != NULL) {
       char packet_buffer[1100];
       
       int message = sprintf(packet_buffer, "\n%d:%d:%d:%s:", packets_current->total_frag, packets_current->frag_no, packets_current->size, packets_current->filename);
       memcpy(&packet_buffer[message], packets_current->filedata, packets_current->size);
+
+      gettimeofday(&start, NULL);  //----------------
 
       num_bytes = sendto(sockfd, packet_buffer, message+packets_current->size, 0, servinfo->ai_addr, servinfo->ai_addrlen);
       printf("sent packet %d\n", packet_num);
@@ -169,15 +195,38 @@ Packets *prepare_file(char *file_name, int sockfd,  struct addrinfo *servinfo, i
       socklen_t from_addr_len = sizeof(from_addr);
       char buf[50]; 
    
-      num_bytes = recvfrom(sockfd, buf, sizeof(buf), 0, (struct sockaddr *) &from_addr, &from_addr_len);
+      //num_bytes = recvfrom(sockfd, buf, sizeof(buf), 0, (struct sockaddr *) &from_addr, &from_addr_len);
       
-      //find 'yes' in buffer
-      if (strncmp(buf, "yes", 3) == 0) {    
-         printf("received packet %d\n", packet_num);
-         packet_num++;
-         num_bytes = 0;
+      int received = 1;
+
+      while (received == 1) {
+         if ((num_bytes = recvfrom(sockfd, buf, sizeof(buf), 0, (struct sockaddr *) &from_addr, &from_addr_len)) <= 0) {
+            gettimeofday(&end, NULL);  //-----------------
+
+            total_time = (end.tv_usec - start.tv_usec);
+            
+            if (total_time >= timeout.tv_usec) {
+               received = 0;
+               resend = 1;
+               printf("Time Out! Timeout = %lu, packet %d\n", timeout.tv_usec, packet_num);
+            }
+            
+         }
+         if (num_bytes > 0) {
+            // check if message is "yes" - print "A file transfer can start."
+            if (strncmp(buf, "yes", 3) == 0) {
+               printf("received packet %d\n", packet_num);
+               packet_num = packet_num + 1;
+               received = 0;
+               resend = 0;
+               total_time = 0;
+            }
+         }  
       }
-      packets_current = packets_current -> next;
+      
+      if (resend == 0) {
+         packets_current = packets_current -> next;
+      }
    }
 
    return root;
