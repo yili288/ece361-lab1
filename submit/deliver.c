@@ -86,7 +86,6 @@ int main(int argc, char *argv[]) {
          printf("A file transfer can start.\n");
       }
    }
-   sleep(1);
 
    end = clock();
    double time = (((double)(end-start))/CLOCKS_PER_SEC);

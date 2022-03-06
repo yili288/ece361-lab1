@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "types.h": "c",
+        "socket.h": "c",
+        "struct_iovec.h": "c"
+    },
+    "C_Cpp.dimInactiveRegions": false
+}

@@ -33,6 +33,8 @@ Packets stringToPacket(char * buffer){
     recv_packet.frag_no = atoi(frag_no);
     current_char += 1;
 
+    printf("packet no %d\n", recv_packet.frag_no);
+
     char size[4] = "";
     while(current_char[0] != ':'){
         strncat(size,current_char,1);
@@ -41,7 +43,7 @@ Packets stringToPacket(char * buffer){
     recv_packet.size = atoi(size);
     current_char += 1;
 
-    char filename[100] = "";
+    char filename[100] = {0};
     while(current_char[0] != ':'){
         strncat(filename,current_char,1);
         current_char += 1;
@@ -49,10 +51,12 @@ Packets stringToPacket(char * buffer){
     recv_packet.filename = filename;
     current_char += 1;
 
+    //data
     for(int i = 0; i < recv_packet.size; i++){
         recv_packet.filedata[i] = *current_char;
         current_char += 1;
     }
+
 
     return recv_packet;
 }
@@ -97,6 +101,7 @@ int main(int argc, char *argv[]) {
     ssize_t bytes_received = 0;
 
     int initial_call = 0;
+    FILE* file_ptr;
 
     while(1){       //waits until a message is received 
         bytes_received = recvfrom(udp_fd, receive_buf, sizeof(receive_buf), 0, (struct sockaddr*) &client_addr, &clientAddrLen);
@@ -139,13 +144,18 @@ int main(int argc, char *argv[]) {
             
                             
                 //Copy data into new file
-                FILE* file_ptr = fopen(receive_pack.filename, "a");
-
+                if(receive_pack.frag_no == 1){
+                    file_ptr = fopen(receive_pack.filename, "a");
+                }
+/*
                 if(file_ptr != NULL){
                     fprintf(file_ptr, receive_pack.filedata);
-                }
-                
-                if(receive_pack.frag_no == receive_pack.total_frag){
+                }*/
+
+                int size_ = fwrite(receive_pack.filedata, receive_pack.size, 1, file_ptr);
+                printf("%d\n", size_);
+
+;                if(receive_pack.frag_no == receive_pack.total_frag){
                     fclose(file_ptr);
                     printf("Client file transferred successfully\n");
                 }
