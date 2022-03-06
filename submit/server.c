@@ -5,8 +5,9 @@
 #include <sys/types.h>
 #include <arpa/inet.h>
 #include "packet.h"
-
 #define BUFSIZE 1100
+
+#include <time.h>
 
 Packets stringToPacket(char * buffer){
     
@@ -61,7 +62,15 @@ Packets stringToPacket(char * buffer){
     return recv_packet;
 }
 
+double uniform_rand(){
+    double result = rand() % 2;
+    printf("rand: ", result);
+    return(result) ;
+}
+
 int main(int argc, char *argv[]) {
+    srand((unsigned int)time(NULL));   // Initialization
+
 
     // check number of arguments
     if(argc != 2){
@@ -108,14 +117,34 @@ int main(int argc, char *argv[]) {
 
         if(bytes_received > 0){
             //printf("buff %s\n", receive_buf);
-            char* message = "";
 
-            if(initial_call == 0){   //no call yet
-                if(strncmp(receive_buf, "ftp", 3) == 0){
-                    //Reply client
+            if (uniform_rand() > 1e-2) {
+                char* message = "";
+
+                if(initial_call == 0){   //no call yet
+                    if(strncmp(receive_buf, "ftp", 3) == 0){
+                        //Reply client
+                        
+                        message = "yes\n";       //success
+                        initial_call = 1;
+                        int size = strlen(message) + 1;
+                        ssize_t bytes_sent = 0;
+                        bytes_sent = sendto(udp_fd, message, size, 0, (struct sockaddr*) &client_addr, clientAddrLen);
                     
-                    message = "yes\n";       //success
-                    initial_call = 1;
+                        if(bytes_sent < 0){
+                            printf("File transfer failed\n");
+                        }
+                    }
+                }else{ //call done
+                    Packets receive_pack = stringToPacket(receive_buf);
+
+                    //Reply client
+                    if (receive_pack.total_frag > 0){
+                        message = "yes\n";       //success
+                    }else{
+                        message = "no\n";
+                    }
+                
                     int size = strlen(message) + 1;
                     ssize_t bytes_sent = 0;
                     bytes_sent = sendto(udp_fd, message, size, 0, (struct sockaddr*) &client_addr, clientAddrLen);
@@ -123,44 +152,29 @@ int main(int argc, char *argv[]) {
                     if(bytes_sent < 0){
                         printf("File transfer failed\n");
                     }
-                }
-            }else{ //call done
-                Packets receive_pack = stringToPacket(receive_buf);
+                          
+                    //Copy data into new file
+                    if(receive_pack.frag_no == 1){
+                        file_ptr = fopen(receive_pack.filename, "a");
+                    }
+                    /*
+                    if(file_ptr != NULL){
+                        fprintf(file_ptr, receive_pack.filedata);
+                    }*/
 
-                //Reply client
-                if (receive_pack.total_frag > 0){
-                    message = "yes\n";       //success
-                }else{
-                    message = "no\n";
-                }
-            
-                int size = strlen(message) + 1;
-                ssize_t bytes_sent = 0;
-                bytes_sent = sendto(udp_fd, message, size, 0, (struct sockaddr*) &client_addr, clientAddrLen);
-            
-                if(bytes_sent < 0){
-                    printf("File transfer failed\n");
-                }
-            
-                            
-                //Copy data into new file
-                if(receive_pack.frag_no == 1){
-                    file_ptr = fopen(receive_pack.filename, "a");
-                }
-/*
-                if(file_ptr != NULL){
-                    fprintf(file_ptr, receive_pack.filedata);
-                }*/
+                    int size_ = fwrite(receive_pack.filedata, receive_pack.size, 1, file_ptr);
+                    printf("%d\n", size_);
 
-                int size_ = fwrite(receive_pack.filedata, receive_pack.size, 1, file_ptr);
-                printf("%d\n", size_);
-
-;                if(receive_pack.frag_no == receive_pack.total_frag){
-                    fclose(file_ptr);
-                    printf("Client file transferred successfully\n");
+    ;                if(receive_pack.frag_no == receive_pack.total_frag){
+                        fclose(file_ptr);
+                        printf("Client file transferred successfully\n");
+                    }
                 }
+
+            // Drop the packet
+            }else{
+                printf("packet is dropped\n");
             }
-
         }
     }
    return 0;
