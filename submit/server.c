@@ -65,7 +65,7 @@ Packets stringToPacket(char * buffer){
 }
 
 double uniform_rand(){
-    double result = rand() % 5;
+    double result = rand() % 2;
     printf("rand: %d\n", result);
     return(result) ;
 }
@@ -138,7 +138,7 @@ int main(int argc, char *argv[]) {
                         }
                     }
                 }else{ //call done
-                    if (uniform_rand() > 0.00001) {
+                    if (uniform_rand() > 1e-8) {
                         Packets receive_pack = stringToPacket(receive_buf);
 
                         //Reply client
