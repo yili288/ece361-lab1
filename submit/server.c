@@ -34,7 +34,7 @@ Packets stringToPacket(char * buffer){
     recv_packet.frag_no = atoi(frag_no);
     current_char += 1;
 
-    printf("packet no %d\n", recv_packet.frag_no);
+    //printf("packet no %d\n", recv_packet.frag_no);
 
     char size[4] = "";
     while(current_char[0] != ':'){
@@ -44,12 +44,14 @@ Packets stringToPacket(char * buffer){
     recv_packet.size = atoi(size);
     current_char += 1;
 
-    char filename[100] = {0};
+    char filename[1000] = {0};
     while(current_char[0] != ':'){
         strncat(filename,current_char,1);
         current_char += 1;
     }
+    //printf("FILENAME %s\n", filename);
     recv_packet.filename = filename;
+    //printf("saved %s\n", recv_packet.filename);
     current_char += 1;
 
     //data
@@ -63,8 +65,8 @@ Packets stringToPacket(char * buffer){
 }
 
 double uniform_rand(){
-    double result = rand() % 2;
-    printf("rand: ", result);
+    double result = rand() % 5;
+    printf("rand: %d\n", result);
     return(result) ;
 }
 
@@ -136,7 +138,7 @@ int main(int argc, char *argv[]) {
                         }
                     }
                 }else{ //call done
-                    if (uniform_rand() > 1e-2) {
+                    if (uniform_rand() > 0.00001) {
                         Packets receive_pack = stringToPacket(receive_buf);
 
                         //Reply client
@@ -156,15 +158,12 @@ int main(int argc, char *argv[]) {
                             
                         //Copy data into new file
                         if(receive_pack.frag_no == 1){
+                            //printf("used filename %s\n", receive_pack.filename);
                             file_ptr = fopen(receive_pack.filename, "a");
                         }
-                        /*
-                        if(file_ptr != NULL){
-                            fprintf(file_ptr, receive_pack.filedata);
-                        }*/
+                        
 
                         int size_ = fwrite(receive_pack.filedata, receive_pack.size, 1, file_ptr);
-                        printf("%d\n", size_);
 
                         if(receive_pack.frag_no == receive_pack.total_frag){
                             fclose(file_ptr);
