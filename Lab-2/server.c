@@ -42,6 +42,7 @@ Client users_db[NUM_ACC];
 typedef struct session {
     int session_num;
     char session_id[MAX_SESSION_NAME];
+    int num_ppl;
 } Session;
 
 Session sessions_db[NUM_ACC] = {0};
@@ -105,17 +106,18 @@ int main(int argc, char *argv[]) {
     socklen_t clientAddrLen = sizeof(client_addr);
     int client_fd = accept(tcp_socket, (struct sockaddr*) &client_addr, &clientAddrLen);
 
+    //might have to do polling to accept next packet in queue
+
     char host[1024];
     char service[20];
-
     //change 0 to NI_NOFQDN
     getnameinfo((struct sockaddr*) &client_addr, clientAddrLen, host, sizeof(host), service, sizeof(service), 0);  
     printf(" host: %s\n", host); // e.g. "www.example.com"
 
 
     //Extract info from the accepted packet
-    void * buff;
-    int num_chars = recv(client_fd, buff, 200, 0);
+    void * recv_buff;
+    int num_chars = recv(client_fd, recv_buff, 200, 0);
     if(num_chars == 0){
         printf("client closed connection on you\n");
     }
@@ -125,7 +127,8 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
-    //might have to do polling to accept next packet in queue
+    //extract info (type,data) out from recv_buff
+
 
     void* ack; //acknowledgement packet
     int len = strlen(ack);
@@ -137,3 +140,44 @@ int main(int argc, char *argv[]) {
 
     
 }
+
+
+//handle login packet:
+//there are 4 fields and 3 semicolons
+//check that for 3rd field, the 4th field is the password (accounts_db)
+//if yes, set to active (users_db) & send LO_ACK with no data
+//if no, send LO_NACK with data
+
+
+//handle exit packet:
+//for 3rd field, set active to false (users_db)
+
+
+//join pack:
+//for 3rd field, set session ID to data in 4th field
+//find 4th field in (session_db)
+//if exists, num of ppl += 1, send JN_ACK with session ID
+//not exists, send JN_NACK with data which says 'session name too long'
+//or user not found
+
+//leave session:
+//change user_db (active set false) and sessions_db (num of ppl -= 1)
+//if num of ppl after this is 0, then delete session
+
+//new session:
+//find first empty element in session_db
+//fill it with information (session id, num ppl = 1)
+//success: NS_ACK
+//fail: if session db is full, print statement only no ACKS needed
+
+//message:
+//
+
+//query:
+//go thru user_db, if active is true, add user ID and session num to list
+//if not active users send 'none' in message
+//QU_ACK: create message to send
+
+
+
+
