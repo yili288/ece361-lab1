@@ -1,6 +1,6 @@
-#define MAX_NAME 100
-#define MAX_DATA 1000
-#define MAX_GENRAL 100
+#define MAX_NAME 4
+#define MAX_DATA 600
+#define MAX_GENRAL 200
 
 struct message {
     unsigned int type;
@@ -8,6 +8,3 @@ struct message {
     unsigned char source[MAX_NAME];   //client ID (eg 'a')
     unsigned char data[MAX_DATA];
 };
-
-// char commands[][] = {"/login", "/logout", "/joinsession", 
-//                      "/leavesession", "createsession", "/list", "/quit"};
