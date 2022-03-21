@@ -55,7 +55,7 @@ typedef struct session {
     int num_ppl;
 } Session;
 
-Session sessions_db[NUM_ACC] = {{0}};
+Session sessions_db[NUM_ACC];
 
 //construct
 //lo_ack,lo_nak, jn_ack,jn_nak, ns_ack, qu_ack
@@ -93,6 +93,12 @@ int main(int argc, char *argv[]) {
         users_db[i].session_id = NULL;
         users_db[i].socket_fd = -1;
         users_db[i].isActive = false;
+    }
+
+    for(int i=0; i < NUM_ACC; i++){
+        sessions_db[i].session_id = NULL;
+        sessions_db[i].num_ppl = 0;
+        
     }
 
     int tcp_socket = socket(AF_INET, SOCK_STREAM, 0);
@@ -268,27 +274,18 @@ int login(struct message packet, int receiver_fd){
 //for 3rd field, set active to false (users_db)
 int exit_conf(struct message packet, int receiver_fd){
 
-    for(int i=0; i < NUM_ACC; i++){
+    /*for(int i=0; i < NUM_ACC; i++){
         if(strcmp(accounts_db[i].name, packet.source) == 0){
             users_db[i].isActive = false;
         }
-    }
+    }*/
 
-    FILE* accs;
-    char line[10];
+    
+    int i = (int)*packet.source - (int)'a'; 
+    users_db[i].isActive = false;
 
-    accs = fopen("accounts.txt", "r");
-    int res;
 
-    while(res != EOF || res == 0){
         
-        res = fscanf(accs,"%s", line);
-        printf("%s\n", line); 
-        if(strstr(line, packet.source) != NULL ){ //user exists
-            int i = (int)line[0] - (int)'a'; 
-            printf("index %d", index);
-        }
-    }
 }
 
 
@@ -310,8 +307,7 @@ int join(struct message packet, int receiver_fd){
     }
 
     if(sessionExists){
-        for(int i=0; i < NUM_ACC; i++){
-            if(strcmp(accounts_db[i].name, packet.source) == 0){
+        int i = (int)*packet.source - (int)'a'; 
                 if(users_db[i].isActive){
                     strcpy(users_db[i].session_id, packet.data);
                     
@@ -334,8 +330,8 @@ int join(struct message packet, int receiver_fd){
                     sendPacket(packet, receiver_fd);
                 }
                 
-            }
-        }
+            
+        
     }else{
         //JN_NAK
         //user not exists
@@ -352,8 +348,8 @@ int join(struct message packet, int receiver_fd){
 //if num of ppl after this is 0, then delete session
 int leave_sess(struct message packet, int receiver_fd){
 
-    for(int i=0; i < NUM_ACC; i++){
-        if(strcmp(accounts_db[i].name, packet.source) == 0){
+    
+    int i = (int)*packet.source - (int)'a'; 
             users_db[i].isActive = false;
 
             for(int i=0; i < NUM_ACC; i++){
@@ -365,8 +361,8 @@ int leave_sess(struct message packet, int receiver_fd){
                     sessions_db[i].session_id = NULL;
                 }
             }
-        }
-    }
+        
+    
             
 }
 
@@ -375,11 +371,15 @@ int leave_sess(struct message packet, int receiver_fd){
 //fill it with information (session id, num ppl = 1)
 //success: NS_ACK
 int new_sess(struct message packet, int receiver_fd){
+    int index = (int)*packet.source - (int)'a'; 
 
     for(int i=0; i < NUM_ACC; i++){
         if(sessions_db[i].session_id == NULL){
             strcpy(sessions_db[i].session_id, packet.data);
             sessions_db[i].num_ppl = 1;
+
+            //
+            strcpy(users_db[index].session_id,packet.data);
 
             //send NS_ACK
             packet.type = 9;
@@ -402,9 +402,8 @@ int broadcast(struct message packet, int receiver_fd){
 
     char* session;
 
-    for(int i=0; i < NUM_ACC; i++){
-        if(strcmp(accounts_db[i].name, packet.source) == 0){
-            session = users_db[i].session_id;
+    int index = (int)*packet.source - (int)'a';
+            session = users_db[index].session_id;
 
             for(int i=0; i < NUM_ACC; i++){
                 if(strcmp(users_db[i].session_id, session) == 0){
@@ -418,8 +417,7 @@ int broadcast(struct message packet, int receiver_fd){
 
                 }
             }
-        }
-    }
+       
 
 }
 
