@@ -240,9 +240,9 @@ int logout() {
    // reset username, password, loggedin, current_socket 
    strcpy(client_ID, "0");
    strcpy(password, "0");
+   close(current_socket);
    current_socket = -1;
    logged_in = 0;
-   close(current_socket);
 
    return 0;
 }
