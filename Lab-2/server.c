@@ -116,6 +116,7 @@ int main(int argc, char *argv[]) {
     struct sockaddr_storage client_addr= {0};     //client host & IP address
     socklen_t clientAddrLen = sizeof(client_addr);
     int client_fd = accept(tcp_socket, (struct sockaddr*) &client_addr, &clientAddrLen);
+    printf("client fd is %d \n", client_fd); // -----------CHECK fd
 
     //might have to do polling to accept next packet in queue
 
@@ -127,7 +128,9 @@ int main(int argc, char *argv[]) {
 
 
     //Extract info from the accepted packet
-    void * recv_buff;
+    //void * recv_buff;
+    char recv_buff[1000]; //------------------------------- MODIFIED
+
     int num_chars = recv(client_fd, recv_buff, 1000, 0);
     if(num_chars == 0){
         printf("client closed connection on you\n");
@@ -407,13 +410,15 @@ int getActiveUserSessions(struct message packet, int receiver_fd){
 int sendPacket(struct message packet, int receiver_fd){
     char packet_buff[1000];
 
-    int message = sprintf(packet_buff, "\n%d:%d:%d:%s:", packet.type, packet.size, packet.source, packet.data);
-    printf("%s", message);
+    int message = sprintf(packet_buff, "\n%d:%d:%s:%s:", packet.type, packet.size, packet.source, packet.data);
+    printf("%d", message);
+    printf("%s \n", packet_buff);
     int len = strlen(packet_buff);
 
     //send: to client
     int send_res = send(receiver_fd, packet_buff, len, 0);
     if(send_res < 0){
+        printf("send error\n");
         return -1;
     }
 }
@@ -460,7 +465,7 @@ struct message stringToPacket(char * buffer){
         current_char += 1;
     }
 
-    printf("data: %s\n", recv_packet.source);
+    printf("data: %s\n", recv_packet.data);
 
     return recv_packet;
 }

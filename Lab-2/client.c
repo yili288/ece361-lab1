@@ -12,109 +12,132 @@
 #include "message.h"
 #include <time.h>
 
-int login(char *client_ID, char *password, char *server_ID, char *server_port, int *sockfd);
-int logout(int *sockfd);
-int joinsession(int *sockfd, char *session_ID);
-int leavesession(int *sockfd);
-int createsession(int *sockfd, char *session_ID);
-int list(int *sockfd);
-int quit(int *sockfd);
+/* TESTING
+/login a aa 128.100.13.250 1055
+*/
+
+int login(char *server_ID, char *server_port);
+int logout();
+int joinsession();
+int leavesession();
+int createsession();
+int list_all();
+int quit();
+int send_data (struct message packet);
+struct message stringToPacket(char * buffer);
 
 int logged_in = 0;
+int current_socket = -1;
+struct addrinfo *servinfo = {0};
 
-// get sockaddr, IPv4 or IPv6:
-void *get_in_addr(struct sockaddr *sa) {
-   if (sa->sa_family == AF_INET) {
-      return &(((struct sockaddr_in*)sa)->sin_addr);
-   }
-
-   return &(((struct sockaddr_in6*)sa)->sin6_addr);
-}
+char client_ID[MAX_GENRAL]  = "0";
+char password[MAX_GENRAL]   = "0";
+char session_ID[MAX_GENRAL] = "0"; 
 
 int main(int argc, char *argv[]) {
+   while (1) {
+      // get command   
+      char command[MAX_GENRAL]; 
+      scanf("%s", command);
 
-   // global socket
-   int sockfd;
+      // store command related info, send info to dedicated functions
+      
+      // login   
+      if (strcmp(command, "/login") == 0 && logged_in == 0) {
+         char server_IP[MAX_GENRAL];
+         char server_port[MAX_GENRAL]; 
+         scanf("%s %s %s %s", client_ID, password, server_IP, server_port);
+         printf("login \n");
+         
+         login(server_IP, server_port);
+      }
+      else if (strcmp(command, "/login") == 0 && logged_in == 1) {
+         printf("Already logged in. To login to a diffrent account you must first logout of this account.");
+      }
+      // logout
+      else if (strcmp(command, "/logout") == 0 && logged_in == 1) {
+         printf("logout \n");
+         logout();
+      }
+      
+      // join
+      else if (strcmp(command, "/joinsession") == 0 && logged_in == 1) {
+         scanf("%s", session_ID);
+         printf("join \n");
+         joinsession();
+      }
 
-   // get command   
-   char command[MAX_GENRAL]; 
-   scanf("%s", command);
+      //leave
+      else if (strcmp(command, "/leavesession") == 0 && logged_in == 1) {
+         printf("leave \n");
+         leavesession();
+      }
 
-   // store command related info, send info to dedicated functions
-   
-   // login   
-   if (strcmp(command, "/login") == 0 && logged_in == 0) {
-      char client_ID[MAX_GENRAL];
-      char password[MAX_GENRAL];
-      char server_IP[MAX_GENRAL];
-      char server_port[MAX_GENRAL]; 
-      scanf("%s %s %s %s", client_ID, password, server_IP, server_port);
-      printf("login \n");
-      login(client_ID, password, server_IP, server_port, &sockfd);
+      // create
+      else if (strcmp(command, "/createsession") == 0 && logged_in == 1) {
+         char session_ID[MAX_GENRAL]; 
+         scanf("%s", session_ID);
+         printf("create \n");
+         createsession();
+      }
+
+      // list
+      else if (strcmp(command, "/list") == 0 && logged_in == 1) {
+         printf("list \n");
+         list_all();
+      }
+
+      // quit
+      else if (strcmp(command, "/quit") == 0) {
+         printf("Quitting the program \n");
+         close(current_socket);
+         return 0;
+      }
+
+      // text
+      else if (logged_in == 1) {
+         char text[MAX_DATA]; 
+         scanf("%s", text);
+         printf("text \n");
+         
+         struct message packet = {0};
+         packet.type = 10;
+         strcpy(packet.source, client_ID);
+         strcpy(packet.data, text);
+         packet.size = sizeof(packet);
+
+         printf("%d:%d:%s:%s\n", packet.type, packet.size, packet.source, packet.data);
+
+         // send username and password
+         send_data(packet);
+
+         printf("sent success\n");
+      }
+      
+      // not logged in but sending things
+      else {
+         printf("Please login first. \n"); 
+         printf("/login <client ID> <password> <server-IP> <server-port> \n");
+      }
+
+      // send length of message
+      // send message
    }
-   
-   // logout
-   else if (strcmp(command, "/logout") == 0) {
-      logged_in = 0;
-      printf("logout \n");
-   }
-   
-   // join
-   else if (strcmp(command, "/joinsession") == 0) {
-      char session_ID[MAX_GENRAL]; 
-      scanf("%s", session_ID);
-      printf("join \n");
-   }
-
-   //leave
-   else if (strcmp(command, "/leavesession") == 0) {
-      printf("leave \n");
-   }
-
-   // create
-   else if (strcmp(command, "/createsession") == 0) {
-      char session_ID[MAX_GENRAL]; 
-      scanf("%s", session_ID);
-      printf("create \n");
-   }
-
-   // list
-   else if (strcmp(command, "/list") == 0) {
-      printf("list \n");
-   }
-
-   // quit
-   else if (strcmp(command, "/quit") == 0) {
-      printf("quit \n");
-   }
-
-   // text
-   else {
-      char text[MAX_DATA]; 
-      scanf("%s", text);
-      printf("text \n");
-   }
-
-   // send length of message
-   // send message
-   
-   return 0;
 }
 
 //login
-int login(char *client_ID, char *password, char *server_ID, char *server_port, int *sockfd) {
+int login(char *server_ID, char *server_port) {
 
    // connect to server
    
    // open  socket
    // int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+   struct addrinfo hints, *p;    // server host & IP address
    int rv;
-   struct addrinfo hints,  *servinfo, *p;    // server host & IP address
-   char s[INET6_ADDRSTRLEN];
    int num_bytes;
 
    memset(&hints, 0, sizeof(hints));
-   hints.ai_family = AF_UNSPEC;      // IPv4 
+   hints.ai_family = AF_INET;      // IPv4 
    hints.ai_socktype = SOCK_STREAM;
 
    if ((rv = getaddrinfo(server_ID, server_port, &hints, &servinfo)) != 0) {
@@ -124,13 +147,13 @@ int login(char *client_ID, char *password, char *server_ID, char *server_port, i
 
    // loop through all the results and connect to the first we can
    for(p = servinfo; p != NULL; p = p->ai_next) {
-      if ((*sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1) {
+      if ((current_socket = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1) {
          perror("client: socket");
       continue;
       }
-      if (connect(*sockfd, p->ai_addr, p->ai_addrlen) == -1) {
+      if (connect(current_socket, p->ai_addr, p->ai_addrlen) == -1) {
          perror("client: connect");
-         close(*sockfd);
+         close(current_socket);
       continue;
       }
       break; // if we get here, we must have connected successfully
@@ -141,199 +164,325 @@ int login(char *client_ID, char *password, char *server_ID, char *server_port, i
       return -1;
    }
 
-   inet_ntop(p->ai_family, get_in_addr((struct sockaddr *)p->ai_addr), s, sizeof s);
-   printf("client: connecting to %s\n", s);
+   printf("socket %d\n", current_socket);
 
-   freeaddrinfo(servinfo); // all done with this structure
+   // create packet
+   struct message packet = {0};
+   packet.type = 0;
+   strcpy(packet.source, client_ID);
+   strcpy(packet.data, password);
+   packet.size = sizeof(password);
+
+   printf("%d:%d:%s:%s\n", packet.type, packet.size, packet.source, packet.data);
 
    // send username and password
+   send_data(packet);
 
+   printf("sent success\n");
 
    // receive LO_ACK
    struct sockaddr_storage server_addr;
    socklen_t server_addr_len = sizeof server_addr;
 
-   char buf[50];
-   if ((num_bytes = recvfrom(*sockfd, buf, sizeof(buf), 0, (struct sockaddr *) &server_addr, &server_addr_len)) == -1){
+   char buf[1000];
+   if ((num_bytes = recv(current_socket, buf, sizeof(buf), 0)) <= 0){
       fprintf(stderr,"Recvfrom error\n");
    }
    else {
-      if (strncmp(buf, "yes", 3) == 0) {
-         printf("A file transfer can start.\n");
+      printf("received %d\n", num_bytes);
+      struct message received = stringToPacket(buf);
+
+      if (received.type == 1) {
+         printf("Successfully logged in\n");
+         logged_in = 1;
          return 0;
       }
-      
-   }
-  
+      else if (received.type == 2) {
+         printf("Unable to login: %s\n", received.data);
+         return 0;
+      }
 
+   }
+
+  return 0;
 }
 
 // logout
-int logout(int *sockfd) {
-   // send logout to server
-
+int logout() {
    // leave session
+   leavesession();
 
-   // reset username, password, loggedin, sockfd 
+   // exit server
+   // create packet
+   struct message packet = {0};
+   packet.type = 3;
+   strcpy(packet.source, client_ID);
+   strcpy(packet.data, "0");
+   packet.size = sizeof(packet);
+
+   printf("%d:%d:%s:%s\n", packet.type, packet.size, packet.source, packet.data);
+
+   // send username and password
+   send_data(packet);
+
+   printf("sent success\n");
+
+   // reset username, password, loggedin, current_socket 
+   strcpy(client_ID, "0");
+   strcpy(password, "0");
+   current_socket = -1;
+   logged_in = 0;
+   close(current_socket);
 
    return 0;
 }
 
 // join
-int joinsession(int *sockfd, char *session_ID) {
+int joinsession() {
    // check if user in session already, only 1 session allowed
+   if (strcmp(session_ID, "0") == 0){
+      printf("INVALID: Not currently in a session");
+      return 0;
+   }
 
    // send join details to server
+   struct message packet = {0};
+   packet.type = 4;
+   strcpy(packet.source, client_ID);
+   strcpy(packet.data, session_ID);
+   packet.size = sizeof(packet);
+
+   printf("%d:%d:%s:%s\n", packet.type, packet.size, packet.source, packet.data);
+
+   // send username and password
+   send_data(packet);
+
+   printf("sent success\n");
+
+   // receive JN_ACK/JN_NAK
+   struct sockaddr_storage server_addr;
+   socklen_t server_addr_len = sizeof server_addr;
+   int num_bytes;
+
+   char buf[1000];
+   if ((num_bytes = recv(current_socket, buf, sizeof(buf), 0)) <= 0){
+      fprintf(stderr,"Recvfrom error\n");
+      return 0;
+   }
+   else {
+      printf("received %d\n", num_bytes);
+      struct message received = stringToPacket(buf);
+
+      if (received.type == 5) {
+         printf("Successfully joined session\n");
+         return 0;
+      }
+      else if (received.type == 6){
+         printf("Unable to join %s: %s \n", session_ID, received.data);
+         return 0;
+      }
+
+   }
    
    return 0;
 }
 
 // leave
-int leavesession(int *sockfd) {
+int leavesession() {
    // check if you're in a session 
+   if (strcmp(session_ID, "0") == 0){
+      printf("INVALID: Not currently in a session");
+      return 0;
+   }
 
    // tell server you want to leave current
+   struct message packet = {0};
+   packet.type = 7;
+   strcpy(packet.source, client_ID);
+   strcpy(packet.data, "0");
+   packet.size = sizeof(packet);
+
+   printf("%d:%d:%s:%s\n", packet.type, packet.size, packet.source, packet.data);
+
+   // send username and password
+   send_data(packet);
+
+   printf("sent success\n");
    return 0;
 }
 
 // create
-int createsession(int *sockfd, char *session_ID) {
+int createsession() {
    // check if you're in a session already
+   if (session_ID != 0) {
+      printf("Unable to create session: already in a session");
+      return 0;
+   }
 
    // tell server you want to create a session
+   struct message packet = {0};
+   packet.type = 8;
+   strcpy(packet.source, client_ID);
+   strcpy(packet.data, session_ID);
+   packet.size = sizeof(packet);
+
+   printf("%d:%d:%s:%s\n", packet.type, packet.size, packet.source, packet.data);
+
+   // send username and password
+   send_data(packet);
+
+   printf("sent success\n");
+
+   // receive NS_ACK
+   struct sockaddr_storage server_addr;
+   socklen_t server_addr_len = sizeof server_addr;
+   int num_bytes;
+
+   char buf[1000];
+   if ((num_bytes = recv(current_socket, buf, sizeof(buf), 0)) <= 0){
+      fprintf(stderr,"Recvfrom error\n");
+      return 0;
+   }
+   else {
+      printf("received %d\n", num_bytes);
+      struct message received = stringToPacket(buf);
+
+      if (received.type == 9) {
+         printf("Successfully created session\n");
+         return 0;
+      }
+      else {
+         printf("Unable to create session \n");
+         return 0;
+      }
+
+   }
    return 0;
 }
 
 // list
-int list(int *sockfd) {
-   // ask client for lisr of clients and sessions
+int list_all() {
+   // ask client for list of clients and sessions
+   struct message packet = {0};
+   packet.type = 11;
+   strcpy(packet.source, client_ID);
+   strcpy(packet.data, session_ID);
+   packet.size = sizeof(packet);
 
-   // receive list
+   printf("%d:%d:%s:%s\n", packet.type, packet.size, packet.source, packet.data);
 
+   // send username and password
+   send_data(packet);
+
+   printf("sent success\n");
+   
+   // receive QU_ACK
+   struct sockaddr_storage server_addr;
+   socklen_t server_addr_len = sizeof server_addr;
+   int num_bytes;
+
+   char buf[1000];
+   if ((num_bytes = recv(current_socket, buf, sizeof(buf), 0)) <= 0){
+      fprintf(stderr,"QU_ACK: Recvfrom error\n");
+      return 0;
+   }
+   else {
+      printf("received %d\n", num_bytes);
+      struct message received = {0};
+      received = stringToPacket(buf);
+
+      if (received.type == 12) {
+         printf("Successfully requested list of clients and available sessions\n");
+      }
+      else {
+         printf("Unable to receive requested list \n");
+         return 0;
+      }
+
+   }
+
+   // receive list and print
+   if ((num_bytes = recv(current_socket, buf, sizeof(buf), 0)) <= 0){
+      fprintf(stderr,"QUERY: Recvfrom error\n");
+      return 0;
+   }
+   else {
+      printf("received %d\n", num_bytes);
+      struct message received = {0};
+      received = stringToPacket(buf);
+
+      printf("%s", received.data);
+      return 0;
+   }
 }
 
 // quit
-int quit(int *sockfd) {
-   logout(sockfd);
+int quit() {
+   logout(current_socket);
    printf("quit");
    return 0;
 }
+
 // text
 
-// old packet code for reference
-/*
-Packets *prepare_file(char *file_name, int sockfd,  struct addrinfo *servinfo, int num_bytes, struct timeval timeout) {
-   FILE *transfer_file;
-   transfer_file = fopen(file_name, "rb");
-   
-   // check if file is corrupt
-   // get length of file
-   fseek(transfer_file, 0, SEEK_END);
-   int transfer_file_size = ftell(transfer_file);
-   fseek(transfer_file, 0, SEEK_SET);
-
-   // determine number of fragments of file
-   int total_frag = (transfer_file_size/1000) + 1; 
-
-   // length remaining of last frag
-   int remainder = transfer_file_size%1000;
-
-   // allocate memory for packets
-   char** all_packets_buffer =  malloc(sizeof(char*) * total_frag);
-
-   // create a list of packets, containing all info
-   Packets  *previous, *root, *next;
-   for (int fragment = 1; fragment <= total_frag; fragment++) { // update max -----------------------------------------
-      Packets *current = malloc(sizeof(Packets));
-      if (fragment == 1) {
-         root = current;
-      }     
-      else {
-         previous->next = current;
-      }
-      current->total_frag = total_frag;
+// send data
+int send_data (struct message packet) {
+   int num_bytes;
+   char packet_buffer[sizeof (struct message)];
       
-      current->frag_no = fragment;
-   
-      if (fragment == total_frag) {
-         current->size = remainder;
-      }
-      else {
-         current->size = 1000;
-      }
-      
-      current->filename = file_name;
-      char file_data[current->size];
-      if (fragment != total_frag) {
-         fread(file_data, sizeof(char), 1000, transfer_file);
-      }
-      else {
-         fread(file_data, sizeof(char), remainder, transfer_file); 
-      }
-      memcpy(current->filedata, file_data, current->size);
-      
-      current->next=NULL;
-      previous = current;
+   int message = sprintf(packet_buffer, "\n%d:%d:%s:%s", packet.type, packet.size, packet.source, packet.data);
+   printf("sent %d\n", message);
+   printf("%s \n", packet_buffer);
+
+   if((num_bytes = send(current_socket, packet_buffer, sizeof(packet_buffer), 0)) == -1) { 
+      printf("send error");
    }
-   // set up packets
-   Packets *packets_current = root;
-   
-   int packet_num = 1;
-   int resend = 1;
-   long total_time = 0;
-   struct timeval start, end;
-
-   while (packets_current != NULL) {
-      char packet_buffer[1100];
-      
-      int message = sprintf(packet_buffer, "\n%d:%d:%d:%s:", packets_current->total_frag, packets_current->frag_no, packets_current->size, packets_current->filename);
-      memcpy(&packet_buffer[message], packets_current->filedata, packets_current->size);
-
-      //gettimeofday(&start, NULL);  //----------------
-
-      num_bytes = sendto(sockfd, packet_buffer, message+packets_current->size, 0, servinfo->ai_addr, servinfo->ai_addrlen);
-      //printf("sent packet %d\n", packet_num);
-
-      // receive message from server
-      struct sockaddr_from* from_addr;
-      socklen_t from_addr_len = sizeof(from_addr);
-      char buf[50]; 
-   
-      //num_bytes = recvfrom(sockfd, buf, sizeof(buf), 0, (struct sockaddr *) &from_addr, &from_addr_len);
-      
-      int received = 1;
-
-      while (received == 1) {
-         if ((num_bytes = recvfrom(sockfd, buf, sizeof(buf), 0, (struct sockaddr *) &from_addr, &from_addr_len)) < 0) {
-            // gettimeofday(&end, NULL);  //-----------------
-
-            // total_time = (end.tv_usec - start.tv_usec);
-            
-            // if (total_time >= timeout.tv_usec) {
-               received = 0;
-               resend = 1;
-               printf("Time Out! Timeout = %lu, packet %d\n", timeout.tv_usec, packet_num);
-            // }
-            
-         }
-         else {
-            // check if message is "yes" - print "A file transfer can start."
-            if (strncmp(buf, "yes", 3) == 0) {
-               //printf("received packet %d\n", packet_num);
-               packet_num = packet_num + 1;
-               received = 0;
-               resend = 0;
-               total_time = 0;
-            }
-         }  
-      }
-      if (resend == 0) {
-         packets_current = packets_current -> next;
-      }
-      
-      
-   }
-
-   return root;
+   return 0;
 }
-*/
+
+struct message stringToPacket(char * buffer){
+    
+    char * current_char = buffer;
+    struct message recv_packet = {0};
+
+    if(buffer == NULL){
+        return recv_packet;
+    }
+    
+    char type[2] = "";  
+    while(current_char[0] != ':'){
+        strncat(type,current_char,1);
+        current_char += 1;
+    }
+    recv_packet.type = atoi(type);
+    current_char += 1;
+
+    char size[4] = "";
+    while(current_char[0] != ':'){
+        strncat(size,current_char,1);
+        current_char += 1;
+    }
+    recv_packet.size = atoi(size);
+    current_char += 1;
+
+    printf("packet type %d, size %d\n", recv_packet.type, recv_packet.size);
+
+    char source[1] = {0};
+    while(current_char[0] != ':'){
+        strncat(source,current_char,1);
+        current_char += 1;
+    }
+    strcpy(recv_packet.source, source);
+    printf("source: %s\n", recv_packet.source);
+    current_char += 1;
+
+    //data
+    for(int i = 0; i < recv_packet.size; i++){
+        recv_packet.data[i] = *current_char;
+        current_char += 1;
+    }
+
+    printf("data: %s\n", recv_packet.source);
+
+    return recv_packet;
+}
