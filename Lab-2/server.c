@@ -193,8 +193,9 @@ int main(int argc, char *argv[]) {
 int login(struct message packet, int receiver_fd){
     struct message ack_pack = {0};
     strcpy(ack_pack.source, packet.source);
-
+    printf("!! %s == %s", accounts_db[0].name, packet.source);
     for(int i=0; i < NUM_ACC; i++){
+
         if(strcmp(accounts_db[i].name, packet.source) == 0){
             if(strcmp(accounts_db[i].password, packet.data) == 0){
                 if(users_db[i].isActive == false){
