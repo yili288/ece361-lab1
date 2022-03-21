@@ -188,14 +188,6 @@ int main(int argc, char *argv[]) {
                 getActiveUserSessions(recv_packet, client_fd);
                 break;
         }
-
-        void* ack = "1:"; //acknowledgement packet
-        int len = strlen(ack);
-        //send: to client
-        int send_res = send(client_fd, ack, len, 0);
-        if(send_res < 0){
-            return -1;
-        }
     }
 
     
@@ -417,20 +409,24 @@ int broadcast(struct message packet, int receiver_fd){
     char* session;
 
     int index = (int)*packet.source - (int)'a';
-            session = users_db[index].session_id;
+    session = users_db[index].session_id;
 
-            for(int i=0; i < NUM_ACC; i++){
-                if(strcmp(users_db[i].session_id, session) == 0){
+    for(int i=0; i < NUM_ACC; i++){
+        printf("users %s", users_db)
+    }
 
-                    packet.type = 10;
-                    packet.size = sizeof(packet);
-                    strcpy(packet.source, accounts_db[i].name);
-                    //packet data kept the same
+    for(int i=0; i < NUM_ACC; i++){
+        if(strcmp(users_db[i].session_id, session) == 0){
 
-                    sendPacket(packet, users_db[i].socket_fd);
+            packet.type = 10;
+            packet.size = sizeof(packet);
+            strcpy(packet.source, accounts_db[i].name);
+            //packet data kept the same
 
-                }
-            }
+            sendPacket(packet, users_db[i].socket_fd);
+
+        }
+    }
        
 
 }
