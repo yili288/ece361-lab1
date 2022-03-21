@@ -160,7 +160,9 @@ int main(int argc, char *argv[]) {
         }
 
         //extract info (type,data) out from recv_buff
+        printf("start convert %d", recv_packet.type);
         struct message recv_packet = stringToPacket(recv_buff);
+        printf("end converting %d", recv_packet.type);
         
         if (recv_packet.type == 0){ //login
                 login(recv_packet, client_fd);
