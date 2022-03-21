@@ -412,7 +412,7 @@ int broadcast(struct message packet, int receiver_fd){
     session = users_db[index].session_id;
 
     for(int i=0; i < NUM_ACC; i++){
-        printf("users %s", users_db)
+        printf("users %s", users_db);
     }
 
     for(int i=0; i < NUM_ACC; i++){
