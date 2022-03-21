@@ -1,20 +1,4 @@
-a aa
-b bb
-c cc
-d dd
-e ee
-f ff
-g gg
-h hh
-i ii
-j jj
-k kk
-l ll
-m mm
-n nn
-o oo
-p pp
-q qq
-r rr
-s ss
-t tt
+a,aa
+b,bb
+c,cc
+d,dd
