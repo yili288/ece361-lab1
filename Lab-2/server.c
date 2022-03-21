@@ -169,6 +169,7 @@ int main(int argc, char *argv[]) {
                 break;
 
             case 3: //exit
+                printf("exciting ..");
                 exit_conf(recv_packet, client_fd);
                 break;
             case 4: //join
@@ -222,10 +223,8 @@ int login(struct message packet, int receiver_fd){
     while(res != EOF || res == 0){
         
         res = fscanf(accs,"%s", line);
-        printf("%s\n", line); 
         if(strstr(line, packet.source) != NULL ){ //user exists
             int i = (int)line[0] - (int)'a'; 
-            printf("index %d", index);
 
             //check password
             if(strstr(line, packet.data) != NULL ){
@@ -281,7 +280,7 @@ int exit_conf(struct message packet, int receiver_fd){
         }
     }*/
 
-    
+    printf("exit func: %s %d", packet.source, (int)'a');
     int i = (int)*packet.source - (int)'a';
     printf("user location %d", i); 
     users_db[i].isActive = false;
@@ -467,7 +466,7 @@ int getActiveUserSessions(struct message packet, int receiver_fd){
 int sendPacket(struct message packet, int receiver_fd){
     char packet_buff[1000];
 
-    int message = sprintf(packet_buff, "\n%d:%d:%s:%s:", packet.type, packet.size, packet.source, packet.data);
+    int message = sprintf(packet_buff, "\n%d:%d:%s:%s", packet.type, packet.size, packet.source, packet.data);
     printf("%d", message);
     printf("%s \n", packet_buff);
     int len = strlen(packet_buff);
