@@ -162,31 +162,28 @@ int main(int argc, char *argv[]) {
         //extract info (type,data) out from recv_buff
         struct message recv_packet = stringToPacket(recv_buff);
         
-        switch (recv_packet.type)
-        {   
-            case 0: //login
+        if (recv_packet.type == 0){ //login
                 login(recv_packet, client_fd);
-                break;
-
-            case 3: //exit
+        }else if(recv_packet.type == 3){
+             //exit
                 printf("exciting ..");
                 exit_conf(recv_packet, client_fd);
-                break;
-            case 4: //join
+         }else if(recv_packet.type == 4){
+            //join
                 join(recv_packet, client_fd);
-                break;
-            case 7: //leave
+        }else if(recv_packet.type == 7){
+            //leave
                 leave_sess(recv_packet, client_fd);
-                break;
-            case 8: //new
+        }else if(recv_packet.type == 8){
+            //new
                 new_sess(recv_packet, client_fd);
-                break;
-            case 10: //message
+        }else if(recv_packet.type == 10){
+            //message
                 broadcast(recv_packet, client_fd);
-                break;
-            case 11: //query
+        }else if(recv_packet.type == 11){
+            //query
                 getActiveUserSessions(recv_packet, client_fd);
-                break;
+        
         }
     }
 
@@ -410,10 +407,6 @@ int broadcast(struct message packet, int receiver_fd){
 
     int index = (int)*packet.source - (int)'a';
     session = users_db[index].session_id;
-
-    for(int i=0; i < NUM_ACC; i++){
-        printf("users %s", users_db)
-    }
 
     for(int i=0; i < NUM_ACC; i++){
         if(strcmp(users_db[i].session_id, session) == 0){
