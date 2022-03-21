@@ -216,8 +216,11 @@ int login(char *server_ID, char *server_port) {
 
 // logout
 int logout() {
+   
    // leave session
-   leavesession();
+   if (session_ID != 0) {
+      leavesession();
+   }
 
    // exit server
    // create packet
