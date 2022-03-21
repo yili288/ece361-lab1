@@ -326,7 +326,7 @@ int leavesession() {
 // create
 int createsession() {
    // check if you're in a session already
-   if (session_ID != 0) {
+   if (strcmp(session_ID, "0") != 0) {
       printf("Unable to create session: already in a session");
       return 0;
    }
