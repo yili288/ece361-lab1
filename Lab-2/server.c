@@ -454,7 +454,7 @@ int getActiveUserSessions(struct message packet, int receiver_fd){
 int sendPacket(struct message packet, int receiver_fd){
     char packet_buff[1000];
 
-    int message = sprintf(packet_buff, "\n%d:%d:%s:%s", packet.type, packet.size, packet.source, packet.data);
+    int message = sprintf(packet_buff, "\n%d:%d:%s:%s:", packet.type, packet.size, packet.source, packet.data);
     printf("%d", message);
     printf("%s \n", packet_buff);
     int len = strlen(packet_buff);
