@@ -284,7 +284,17 @@ int exit_conf(struct message packet, int receiver_fd){
     int i = (int)*packet.source - (int)'a'; 
     users_db[i].isActive = false;
 
+    for(int i=0; i < NUM_ACC; i++){
+        if(strcmp(sessions_db[i].session_id, users_db[i].session_id) == 0){
+            sessions_db[i].num_ppl -= 1;
+        }
 
+        if(sessions_db[i].num_ppl == 0){
+            sessions_db[i].session_id = NULL;
+        }
+
+        users_db[i].session_id = NULL;
+    }
         
 }
 
@@ -350,17 +360,19 @@ int leave_sess(struct message packet, int receiver_fd){
 
     
     int i = (int)*packet.source - (int)'a'; 
-            users_db[i].isActive = false;
+    users_db[i].isActive = false;
 
-            for(int i=0; i < NUM_ACC; i++){
-                if(strcmp(sessions_db[i].session_id, packet.data) == 0){
-                    sessions_db[i].num_ppl -= 1;
-                }
+    for(int i=0; i < NUM_ACC; i++){
+        if(strcmp(sessions_db[i].session_id, packet.data) == 0){
+            sessions_db[i].num_ppl -= 1;
+        }
 
-                if(sessions_db[i].num_ppl == 0){
-                    sessions_db[i].session_id = NULL;
-                }
-            }
+        if(sessions_db[i].num_ppl == 0){
+            sessions_db[i].session_id = NULL;
+        }
+    }
+
+    users_db[i].session_id = NULL;
         
     
             
@@ -372,11 +384,12 @@ int leave_sess(struct message packet, int receiver_fd){
 //success: NS_ACK
 int new_sess(struct message packet, int receiver_fd){
     int index = (int)*packet.source - (int)'a'; 
-
+    printf("new sess %s\n", packet.data);
     for(int i=0; i < NUM_ACC; i++){
         if(sessions_db[i].session_id == NULL){
             strcpy(sessions_db[i].session_id, packet.data);
             sessions_db[i].num_ppl = 1;
+            printf("%s", packet.data);
 
             //
             strcpy(users_db[index].session_id,packet.data);
