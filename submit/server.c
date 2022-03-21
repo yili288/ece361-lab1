@@ -138,7 +138,7 @@ int main(int argc, char *argv[]) {
                         }
                     }
                 }else{ //call done
-                    if (uniform_rand() > 1e-8) {
+                    if (uniform_rand() > 1e-1) {
                         Packets receive_pack = stringToPacket(receive_buf);
 
                         //Reply client

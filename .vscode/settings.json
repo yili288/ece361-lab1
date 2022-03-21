@@ -3,7 +3,12 @@
         "types.h": "c",
         "socket.h": "c",
         "struct_iovec.h": "c",
-        "stdlib.h": "c"
+        "stdlib.h": "c",
+        "stdbool.h": "c",
+        "array": "c",
+        "string_view": "c",
+        "initializer_list": "c",
+        "utility": "c"
     },
     "C_Cpp.dimInactiveRegions": false
 }
