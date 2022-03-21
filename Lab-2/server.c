@@ -162,6 +162,7 @@ int main(int argc, char *argv[]) {
         //extract info (type,data) out from recv_buff
         struct message recv_packet = stringToPacket(recv_buff);
         
+        
         if (recv_packet.type == 0){ //login
                 login(recv_packet, client_fd);
         }else if(recv_packet.type == 3){
