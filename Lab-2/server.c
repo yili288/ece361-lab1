@@ -130,11 +130,11 @@ int main(int argc, char *argv[]) {
     //accept:
     struct sockaddr_storage client_addr= {0};     //client host & IP address
     socklen_t clientAddrLen = sizeof(client_addr);
+    int client_fd = accept(tcp_socket, (struct sockaddr*) &client_addr, &clientAddrLen);
+    printf("client fd is %d \n", client_fd); // -----------CHECK fd
 
     while(1){
-        int client_fd = accept(tcp_socket, (struct sockaddr*) &client_addr, &clientAddrLen);
-        printf("client fd is %d \n", client_fd); // -----------CHECK fd
-
+        
         //might have to do polling to accept next packet in queue
 
         char host[1024];
