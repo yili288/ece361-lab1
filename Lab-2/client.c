@@ -218,7 +218,7 @@ int login(char *server_ID, char *server_port) {
 int logout() {
    
    // leave session
-   if (session_ID != 0) {
+   if (strcmp(session_ID, "0") != 0) {
       leavesession();
    }
 
