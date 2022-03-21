@@ -230,6 +230,7 @@ int login(struct message packet, int receiver_fd){
             //check password
             if(strstr(line, packet.data) != NULL ){
                 if(users_db[i].isActive == false){
+                    printf("user location %d", i); 
                     users_db[i].isActive = true;
 
                     //send LO_ACK
@@ -281,7 +282,8 @@ int exit_conf(struct message packet, int receiver_fd){
     }*/
 
     
-    int i = (int)*packet.source - (int)'a'; 
+    int i = (int)*packet.source - (int)'a';
+    printf("user location %d", i); 
     users_db[i].isActive = false;
 
     for(int i=0; i < NUM_ACC; i++){
