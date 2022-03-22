@@ -247,6 +247,7 @@ int joinsession(char* session_to_join) {
       return 0;
    }
    strcpy(session_ID, session_to_join);
+   
    // send join details to server
    struct message packet = {0};
    packet.type = 4;
@@ -262,6 +263,8 @@ int joinsession(char* session_to_join) {
    printf("sent success\n");
 
    receive(1);
+   
+   printf("In session %s", session_ID);
    
    return 0;
 }
@@ -287,6 +290,10 @@ int leavesession() {
    send_data(packet);
 
    printf("sent success\n");
+
+   strcpy(session_ID, "0");
+   printf("In session %s", session_ID);
+
    return 0;
 }
 
@@ -417,7 +424,9 @@ void receive(int sent_type) {
          printf("received %d\n", num_bytes);
          struct message received = {0};
          received = stringToPacket(buf);
-         printf("!receiver %d, %d", received.type, sent_type);
+
+         printf("!receiver %d, %d\n", received.type, sent_type);
+         
          // broadcast from server
          if (received.type == 10) {
             printf("%s", received.data);
