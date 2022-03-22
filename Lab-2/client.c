@@ -113,18 +113,18 @@ int main(int argc, char *argv[]) {
 
       // text
       else if (logged_in == 1) {
-         // char text[MAX_DATA]; 
-         // scanf("%s", text);
+         // get rest of text
+         char text[MAX_DATA];
+         scanf("%[^\n]s", text);
+         // add remaining text to end of first word
+         strcat(command, text);
          printf("text \n");
          
          struct message packet = {0};
          packet.type = 10;
          strcpy(packet.source, client_ID);
 
-         char text[MAX_DATA];
-         strcpy(text, command);
-
-         strcpy(packet.data, text);
+         strcpy(packet.data, command);
          packet.size = sizeof(packet);
 
          printf("%d:%d:%s:%s\n", packet.type, packet.size, packet.source, packet.data);
