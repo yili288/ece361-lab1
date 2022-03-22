@@ -134,7 +134,7 @@ int main(int argc, char *argv[]) {
         perror("setsockopt");
         exit(1);
     }
-
+//
 
     //listen: establish queue
     int listen_result = listen(tcp_socket, MAX_ONQUEUE);
