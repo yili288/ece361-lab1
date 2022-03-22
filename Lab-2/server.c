@@ -42,7 +42,7 @@ Account accounts_db[NUM_ACC] = {{"a","aa"},{"b","bb"},{"c","cc"},{"d","dd"},
 
 
 typedef struct client {
-    char* name;
+    char name;
     char* session_id;  
     int socket_fd;
     bool isActive;
@@ -89,7 +89,7 @@ int main(int argc, char *argv[]) {
     //make user database
     
     for(int i=0; i < NUM_ACC; i++){
-        users_db[i].name = NULL;
+        users_db[i].name = ' ';
         users_db[i].session_id = NULL;
         users_db[i].socket_fd = -1;
         users_db[i].isActive = false;
@@ -267,6 +267,8 @@ int login(struct message packet, int receiver_fd){
                 if(users_db[i].isActive == false){
                     printf("saved user location %d\n", i); 
                     users_db[i].isActive = true;
+                    users_db[i].socket_fd = receiver_fd;
+                    users_db[i].name = line[0];
 
                     //send LO_ACK
                     ack_pack.type = 1;
@@ -320,6 +322,7 @@ int exit_conf(struct message packet, int receiver_fd){
     int i = (int)packet.source[0] - (int)'a';
     printf("user location %d\n", i); 
     users_db[i].isActive = false;
+    users_db[i].socket_fd = -1;
 
     for(int i=0; i < NUM_ACC; i++){
         if(users_db[i].session_id != NULL && strcmp(sessions_db[i].session_id, users_db[i].session_id) == 0){
@@ -355,9 +358,13 @@ int join(struct message packet, int receiver_fd){
 
     if(sessionExists){
         int i = (int)*packet.source - (int)'a'; 
-                if(users_db[i].isActive && users_db[i].session_id != NULL){
-                    strcpy(users_db[i].session_id, packet.data);
-                    
+                if(users_db[i].isActive){
+                    if(users_db[i].session_id == NULL){
+                        users_db[i].session_id = packet.data;
+                    }else{
+                        strcpy(users_db[i].session_id, packet.data);
+                    }
+
                     //find session and add num of ppl
                     for(int i=0; i < NUM_ACC; i++){
                         if(sessions_db[i].session_id != NULL && strcmp(sessions_db[i].session_id, packet.data) == 0){
@@ -461,10 +468,9 @@ int broadcast(struct message packet, int receiver_fd){
         if(users_db[i].session_id != NULL && strcmp(users_db[i].session_id, session) == 0){
 
             packet.type = 10;
-            packet.size = sizeof(packet);
-            strcpy(packet.source, accounts_db[i].name);
+            strcpy(packet.source, &users_db[i].name);
             //packet data kept the same
-
+            printf("message reply data: %s", packet.data);
             sendPacket(packet, users_db[i].socket_fd);
 
         }
@@ -482,7 +488,7 @@ int broadcast(struct message packet, int receiver_fd){
             }
         }
     }
-  */     
+   */   
 
 }
 

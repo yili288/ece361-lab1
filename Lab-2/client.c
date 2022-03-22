@@ -82,9 +82,17 @@ int main(int argc, char *argv[]) {
 
       // create
       else if (strcmp(command, "/createsession") == 0 && logged_in == 1) {
+
+         // check if you're in a session already
+         if (strcmp(session_ID, "0") != 0) {
+            printf("Unable to create session: already in a session");
+            return 0;
+         }
+
          char new_session[MAX_GENRAL]; 
 
          scanf("%s", new_session);
+         strcpy(session_ID, new_session);
          printf("new session name: %s ", new_session);
          printf("create \n");
          createsession(new_session);
@@ -238,7 +246,7 @@ int joinsession(char* session_to_join) {
       printf("INVALID: Currently in a session");
       return 0;
    }
-
+   strcpy(session_ID, session_to_join);
    // send join details to server
    struct message packet = {0};
    packet.type = 4;
@@ -284,12 +292,7 @@ int leavesession() {
 
 // create
 int createsession(char * new_session_name) {
-   // check if you're in a session already
-   if (strcmp(session_ID, "0") != 0) {
-      printf("Unable to create session: already in a session");
-      return 0;
-   }
-
+   
    // tell server you want to create a session
    struct message packet = {0};
    packet.type = 8;
@@ -414,7 +417,7 @@ void receive(int sent_type) {
          printf("received %d\n", num_bytes);
          struct message received = {0};
          received = stringToPacket(buf);
-
+         printf("!receiver %d, %d", received.type, sent_type);
          // broadcast from server
          if (received.type == 10) {
             printf("%s", received.data);
