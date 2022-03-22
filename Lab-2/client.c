@@ -20,7 +20,7 @@ int login(char *server_ID, char *server_port);
 int logout();
 int joinsession();
 int leavesession();
-int createsession();
+int createsession(char * new_session_name);
 int list_all();
 int quit();
 int send_data (struct message packet);
@@ -63,9 +63,10 @@ int main(int argc, char *argv[]) {
       
       // join
       else if (strcmp(command, "/joinsession") == 0 && logged_in == 1) {
-         scanf("%s", session_ID);
+         char session_to_join[MAX_GENRAL]; 
+         scanf("%s", session_to_join);
          printf("join \n");
-         joinsession();
+         joinsession(session_to_join);
       }
 
       //leave
@@ -76,10 +77,12 @@ int main(int argc, char *argv[]) {
 
       // create
       else if (strcmp(command, "/createsession") == 0 && logged_in == 1) {
-         char session_ID[MAX_GENRAL]; 
-         scanf("%s", session_ID);
+         char new_session[MAX_GENRAL]; 
+
+         scanf("%s", new_session);
+         printf("new session name: %s ", new_session);
          printf("create \n");
-         createsession();
+         createsession(new_session);
       }
 
       // list
@@ -248,10 +251,10 @@ int logout() {
 }
 
 // join
-int joinsession() {
+int joinsession(char* session_to_join) {
    // check if user in session already, only 1 session allowed
-   if (strcmp(session_ID, "0") == 0){
-      printf("INVALID: Not currently in a session");
+   if (strcmp(session_ID, "0") != 0){
+      printf("INVALID: already in a session");
       return 0;
    }
 
@@ -259,7 +262,7 @@ int joinsession() {
    struct message packet = {0};
    packet.type = 4;
    strcpy(packet.source, client_ID);
-   strcpy(packet.data, session_ID);
+   strcpy(packet.data, session_to_join);
    packet.size = sizeof(packet);
 
    printf("%d:%d:%s:%s\n", packet.type, packet.size, packet.source, packet.data);
@@ -324,9 +327,10 @@ int leavesession() {
 }
 
 // create
-int createsession() {
+int createsession(char * new_session_name) {
    // check if you're in a session already
-   if (session_ID != 0) {
+
+   if (strcmp(session_ID, "0") != 0){
       printf("Unable to create session: already in a session");
       return 0;
    }
@@ -335,7 +339,7 @@ int createsession() {
    struct message packet = {0};
    packet.type = 8;
    strcpy(packet.source, client_ID);
-   strcpy(packet.data, session_ID);
+   strcpy(packet.data, new_session_name);
    packet.size = sizeof(packet);
 
    printf("%d:%d:%s:%s\n", packet.type, packet.size, packet.source, packet.data);
