@@ -42,7 +42,7 @@ Account accounts_db[NUM_ACC] = {{"a","aa"},{"b","bb"},{"c","cc"},{"d","dd"},
 
 
 typedef struct client {
-    char* name;
+    char name;
     char* session_id;  
     int socket_fd;
     bool isActive;
@@ -89,7 +89,7 @@ int main(int argc, char *argv[]) {
     //make user database
     
     for(int i=0; i < NUM_ACC; i++){
-        users_db[i].name = NULL;
+        users_db[i].name = ' ';
         users_db[i].session_id = NULL;
         users_db[i].socket_fd = -1;
         users_db[i].isActive = false;
@@ -97,9 +97,24 @@ int main(int argc, char *argv[]) {
 
     for(int i=0; i < NUM_ACC; i++){
         sessions_db[i].session_id = NULL;
-        sessions_db[i].num_ppl = 0;
+        sessions_db[i].num_ppl = -1;
         
     }
+
+    // variables to handle multiple clients
+    fd_set master;    // master file descriptor list
+    fd_set read_fds;  // temp file descriptor list for select()
+    int fdmax;        // maximum file descriptor number
+
+    int newfd;        // newly accept()ed socket descriptor
+    char remoteIP[AF_INET];
+
+    char buf[1100];    // buffer for client data
+    int nbytes;
+
+    FD_ZERO(&master);    // clear the master and temp sets
+    FD_ZERO(&read_fds);
+
 
     int tcp_socket = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -119,77 +134,105 @@ int main(int argc, char *argv[]) {
         perror("setsockopt");
         exit(1);
     }
-
+//
 
     //listen: establish queue
     int listen_result = listen(tcp_socket, MAX_ONQUEUE);
     if(listen_result < 0){
-        return -1;
+        perror("listen");
+        exit(3);
     }
+
+    // add the listener to the master set
+    FD_SET(tcp_socket, &master);
+
+    // keep track of the biggest file descriptor
+    fdmax = tcp_socket; // so far, it's this one
 
     //accept:
     struct sockaddr_storage client_addr= {0};     //client host & IP address
     socklen_t clientAddrLen = sizeof(client_addr);
-    int client_fd = accept(tcp_socket, (struct sockaddr*) &client_addr, &clientAddrLen);
-    printf("client fd is %d \n", client_fd); // -----------CHECK fd
-
-    while(1){
-        
-        //might have to do polling to accept next packet in queue
-
-        char host[1024];
-        char service[20];
-        //change 0 to NI_NOFQDN
-        getnameinfo((struct sockaddr*) &client_addr, clientAddrLen, host, sizeof(host), service, sizeof(service), 0);  
-        printf(" client %s connected\n", host); // e.g. "www.example.com"
-
-
-        //Extract info from the accepted packet
-        //void * recv_buff;
-        char recv_buff[1000]; //------------------------------- MODIFIED
-
-        int num_chars = recv(client_fd, recv_buff, 1000, 0);
-        if(num_chars == 0){
-            printf("client closed connection on you\n");
-        }
-        if(num_chars < 0) {
-            printf("problem with recv()\n");
-            return -1;
-        }else{
-            printf("recevied amount %d", num_chars);
+    
+    int i = 0;
+    // main loop
+    for(;;) {
+        read_fds = master; // copy it
+        if (select(fdmax+1, &read_fds, NULL, NULL, NULL) == -1) {   
+            perror("select");
+            exit(4);
         }
 
-        //extract info (type,data) out from recv_buff
-        printf("start convert");
-        struct message recv_packet = stringToPacket(recv_buff);
-        printf("end converting %d", recv_packet.type);
-        
-        
-        if (recv_packet.type == 0){ //login
-                login(recv_packet, client_fd);
-        }else if(recv_packet.type == 3){
-             //exit
-                printf("exciting ..");
-                exit_conf(recv_packet, client_fd);
-         }else if(recv_packet.type == 4){
-            //join
-                join(recv_packet, client_fd);
-        }else if(recv_packet.type == 7){
-            //leave
-                leave_sess(recv_packet, client_fd);
-        }else if(recv_packet.type == 8){
-            //new
-                new_sess(recv_packet, client_fd);
-        }else if(recv_packet.type == 10){
-            //message
-                broadcast(recv_packet, client_fd);
-        }else if(recv_packet.type == 11){
-            //query
-                getActiveUserSessions(recv_packet, client_fd);
-        
-        }
-    }
+        // run through the existing connections looking for data to read
+        for(i = 0; i <= fdmax; i++) {
+            if (FD_ISSET(i, &read_fds)) { // we got one!! this is an fa flag
+                if (i == tcp_socket) {
+                    // handle new connections
+                    clientAddrLen = sizeof client_addr;
+					newfd = accept(tcp_socket, (struct sockaddr *)&client_addr, &clientAddrLen);
 
+					if (newfd == -1) {
+                        perror("accept");
+                    } else {
+                        FD_SET(newfd, &master); // add to master set
+                        if (newfd > fdmax) {    // keep track of the max
+                            fdmax = newfd;
+                        }
+
+                        char host[1024];
+                        char server[20];
+                        getnameinfo((struct sockaddr *)&client_addr, clientAddrLen, 
+                                        host, sizeof(host),server, sizeof(server), 0);
+                        printf("selectserver: new connection from %s on "
+                                "socket %d\n", host, newfd);
+                    }
+                } else {
+                    // handle data from a existing connected client
+                    if ((nbytes = recv(i, buf, sizeof buf, 0)) <= 0) {
+                        // got error or connection closed by client
+                        if (nbytes == 0) {
+                            // connection closed
+                            printf("selectserver: socket %d hung up\n", i);
+                        } else {
+                            perror("recv");
+                        }
+                        close(i); // bye!
+                        FD_CLR(i, &master); // remove from master set
+                    } else {
+                        //extract info (type,data) out from recv_buff
+                        printf("start convert");
+                        struct message recv_packet = {0};
+                        recv_packet = stringToPacket(buf);
+                        printf("end converting %s, %d\n", recv_packet.source, recv_packet.type);
+                        
+                        if (recv_packet.type == 0){ 
+                            //login
+                            login(recv_packet, i);
+                        }else if(recv_packet.type == 3){
+                            //exit
+                            exit_conf(recv_packet, i);
+                        }else if(recv_packet.type == 4){
+                            //join
+                                join(recv_packet, i);
+                        }else if(recv_packet.type == 7){
+                            //leave
+                                leave_sess(recv_packet, i);
+                        }else if(recv_packet.type == 8){
+                            //new
+                                new_sess(recv_packet, i);
+                        }else if(recv_packet.type == 10){
+                            //message
+                                broadcast(recv_packet, i);
+                        }else if(recv_packet.type == 11){
+                            //query
+                                getActiveUserSessions(recv_packet, i);
+                        }
+                    } //end extracting data
+                } // END handle data from client
+            } // END got new incoming connection
+        } // END looping through file descriptors
+    } // END for(;;)--and you thought it would never end!
+    
+    return 0;
     
 }
 
@@ -216,13 +259,16 @@ int login(struct message packet, int receiver_fd){
         
         res = fscanf(accs,"%s", line);
         if(strstr(line, packet.source) != NULL ){ //user exists
+            printf("user index %c, %d, %d", line[0], (int)line[0], (int)'a'); 
             int i = (int)line[0] - (int)'a'; 
 
             //check password
             if(strstr(line, packet.data) != NULL ){
                 if(users_db[i].isActive == false){
-                    printf("user location %d", i); 
+                    printf("saved user location %d\n", i); 
                     users_db[i].isActive = true;
+                    users_db[i].socket_fd = receiver_fd;
+                    users_db[i].name = line[0];
 
                     //send LO_ACK
                     ack_pack.type = 1;
@@ -272,21 +318,22 @@ int exit_conf(struct message packet, int receiver_fd){
         }
     }*/
 
-    printf("exit func: %s %d", packet.source, (int)'a');
-    int i = (int)*packet.source - (int)'a';
-    printf("user location %d", i); 
+    printf("exit func: %s %d\n", packet.source, (int)'a');
+    int i = (int)packet.source[0] - (int)'a';
+    printf("user location %d\n", i); 
     users_db[i].isActive = false;
+    users_db[i].socket_fd = -1;
 
     for(int i=0; i < NUM_ACC; i++){
-        if(strcmp(sessions_db[i].session_id, users_db[i].session_id) == 0){
+        if(users_db[i].session_id != NULL && strcmp(sessions_db[i].session_id, users_db[i].session_id) == 0){
             sessions_db[i].num_ppl -= 1;
+            users_db[i].session_id = NULL;
         }
 
         if(sessions_db[i].num_ppl == 0){
             sessions_db[i].session_id = NULL;
         }
-
-        users_db[i].session_id = NULL;
+        
     }
         
 }
@@ -304,7 +351,7 @@ int join(struct message packet, int receiver_fd){
     bool sessionExists = false;
 
     for(int i=0; i < NUM_ACC; i++){
-        if(strcmp(users_db[i].session_id, packet.data) == 0){
+        if(users_db[i].session_id != NULL && strcmp(users_db[i].session_id, packet.data) == 0){
             sessionExists = true;
         }
     }
@@ -312,11 +359,15 @@ int join(struct message packet, int receiver_fd){
     if(sessionExists){
         int i = (int)*packet.source - (int)'a'; 
                 if(users_db[i].isActive){
-                    strcpy(users_db[i].session_id, packet.data);
-                    
+                    if(users_db[i].session_id == NULL){
+                        users_db[i].session_id = packet.data;
+                    }else{
+                        strcpy(users_db[i].session_id, packet.data);
+                    }
+
                     //find session and add num of ppl
                     for(int i=0; i < NUM_ACC; i++){
-                        if(strcmp(sessions_db[i].session_id, packet.data) == 0){
+                        if(sessions_db[i].session_id != NULL && strcmp(sessions_db[i].session_id, packet.data) == 0){
                             sessions_db[i].num_ppl += 1;
                             //JN_ACK
                             packet.type = 5;
@@ -356,7 +407,7 @@ int leave_sess(struct message packet, int receiver_fd){
     users_db[i].isActive = false;
 
     for(int i=0; i < NUM_ACC; i++){
-        if(strcmp(sessions_db[i].session_id, packet.data) == 0){
+        if(sessions_db[i].session_id != NULL && strcmp(sessions_db[i].session_id, packet.data) == 0){
             sessions_db[i].num_ppl -= 1;
         }
 
@@ -377,15 +428,17 @@ int leave_sess(struct message packet, int receiver_fd){
 //success: NS_ACK
 int new_sess(struct message packet, int receiver_fd){
     int index = (int)*packet.source - (int)'a'; 
-    printf("new sess %s\n", packet.data);
+    printf("new sess name: %s\n", packet.data);
     for(int i=0; i < NUM_ACC; i++){
         if(sessions_db[i].session_id == NULL){
-            strcpy(sessions_db[i].session_id, packet.data);
+            sessions_db[i].session_id = packet.data;
             sessions_db[i].num_ppl = 1;
-            printf("%s", packet.data);
 
-            //
-            strcpy(users_db[index].session_id,packet.data);
+            if(users_db[index].session_id == NULL){
+                users_db[index].session_id = packet.data;
+            }else{
+                strcpy(users_db[index].session_id,packet.data);
+            }
 
             //send NS_ACK
             packet.type = 9;
@@ -412,18 +465,30 @@ int broadcast(struct message packet, int receiver_fd){
     session = users_db[index].session_id;
 
     for(int i=0; i < NUM_ACC; i++){
-        if(strcmp(users_db[i].session_id, session) == 0){
+        if(users_db[i].session_id != NULL && strcmp(users_db[i].session_id, session) == 0){
 
             packet.type = 10;
-            packet.size = sizeof(packet);
-            strcpy(packet.source, accounts_db[i].name);
+            strcpy(packet.source, &users_db[i].name);
             //packet data kept the same
-
+            printf("message reply data: %s", packet.data);
             sendPacket(packet, users_db[i].socket_fd);
 
         }
     }
-       
+/*
+    // we got some data from a client
+    for(j = 0; j <= fdmax; j++) {
+        // send to everyone!
+        if (FD_ISSET(j, &master)) {
+            // except the listener and ourselves
+            if (j != tcp_socket && j != i) {
+                if (send(j, buf, nbytes, 0) == -1) {
+                    perror("send");
+                }
+            }
+        }
+    }
+   */   
 
 }
 
@@ -474,10 +539,10 @@ int sendPacket(struct message packet, int receiver_fd){
 struct message stringToPacket(char * buffer){
     
     char * current_char = buffer;
-    struct message recv_packet = {0};
+    struct message pack = {0};
 
     if(buffer == NULL){
-        return recv_packet;
+        return pack;
     }
     
     char type[2] = "";  
@@ -485,7 +550,7 @@ struct message stringToPacket(char * buffer){
         strncat(type,current_char,1);
         current_char += 1;
     }
-    recv_packet.type = atoi(type);
+    pack.type = atoi(type);
     current_char += 1;
 
     char size[4] = "";
@@ -493,27 +558,27 @@ struct message stringToPacket(char * buffer){
         strncat(size,current_char,1);
         current_char += 1;
     }
-    recv_packet.size = atoi(size);
+    pack.size = atoi(size);
     current_char += 1;
 
-    printf("\npacket type %d, size %d\n", recv_packet.type, recv_packet.size);
+    printf("\npacket type %d, size %d\n", pack.type, pack.size);
 
     char source[1] = {0};
     while(current_char[0] != ':'){
         strncat(source,current_char,1);
         current_char += 1;
     }
-    strcpy(recv_packet.source, source);
-    printf("source: %s\n", recv_packet.source);
+    strcpy(pack.source, source);
+    printf("source: %s\n", pack.source);
     current_char += 1;
 
     //data
-    for(int i = 0; i < recv_packet.size; i++){
-        recv_packet.data[i] = *current_char;
+    for(int i = 0; i < pack.size; i++){
+        pack.data[i] = *current_char;
         current_char += 1;
     }
 
-    printf("data: %s\n", recv_packet.data);
+    printf("data: %s\n", pack.data);
 
-    return recv_packet;
+    return pack;
 }
