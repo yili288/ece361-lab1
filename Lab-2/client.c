@@ -36,6 +36,11 @@ char password[MAX_GENRAL]   = "0";
 char session_ID[MAX_GENRAL] = "0"; 
 
 int main(int argc, char *argv[]) {
+   // initial message
+   printf("To begin text conferencing, you must login as follows \n");
+   printf("/login <client ID> <password> <server-IP> <server-port>\n");
+
+   // loop until exit 
    while (1) {
       // get command   
       char command[MAX_GENRAL]; 
@@ -226,8 +231,8 @@ int logout() {
 // join
 int joinsession() {
    // check if user in session already, only 1 session allowed
-   if (strcmp(session_ID, "0") == 0){
-      printf("INVALID: Not currently in a session");
+   if (strcmp(session_ID, "0") != 0){
+      printf("INVALID: Currently in a session");
       return 0;
    }
 
