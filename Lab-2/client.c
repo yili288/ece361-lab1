@@ -36,6 +36,11 @@ char password[MAX_GENRAL]   = "0";
 char session_ID[MAX_GENRAL] = "0"; 
 
 int main(int argc, char *argv[]) {
+   // initial message
+   printf("To begin text conferencing, you must login as follows \n");
+   printf("/login <client ID> <password> <server-IP> <server-port>\n");
+
+   // loop until exit 
    while (1) {
       // get command   
       char command[MAX_GENRAL]; 
@@ -188,30 +193,6 @@ int login(char *server_ID, char *server_port) {
 
    printf("sent success\n");
 
-   // receive LO_ACK
-   // struct sockaddr_storage server_addr;
-   // socklen_t server_addr_len = sizeof server_addr;
-
-   // char buf[1000];
-   // if ((num_bytes = recv(current_socket, buf, sizeof(buf), 0)) <= 0){
-   //    fprintf(stderr,"Recvfrom error\n");
-   // }
-   // else {
-   //    printf("received %d\n", num_bytes);
-   //    struct message received = stringToPacket(buf);
-
-   //    if (received.type == 1) {
-   //       printf("Successfully logged in\n");
-   //       logged_in = 1;
-   //       return 0;
-   //    }
-   //    else if (received.type == 2) {
-   //       printf("Unable to login: %s\n", received.data);
-   //       return 0;
-   //    }
-
-   // }
-
    receive(0);
 
   return 0;
@@ -254,7 +235,11 @@ int logout() {
 int joinsession(char* session_to_join) {
    // check if user in session already, only 1 session allowed
    if (strcmp(session_ID, "0") != 0){
+<<<<<<< HEAD
       printf("INVALID: already in a session");
+=======
+      printf("INVALID: Currently in a session");
+>>>>>>> e8fd949f8c33065151ea6c615a6431a5ffb7094d
       return 0;
    }
 
@@ -271,31 +256,6 @@ int joinsession(char* session_to_join) {
    send_data(packet);
 
    printf("sent success\n");
-
-   // receive JN_ACK/JN_NAK
-   // struct sockaddr_storage server_addr;
-   // socklen_t server_addr_len = sizeof server_addr;
-   // int num_bytes;
-
-   // char buf[1000];
-   // if ((num_bytes = recv(current_socket, buf, sizeof(buf), 0)) <= 0){
-   //    fprintf(stderr,"Recvfrom error\n");
-   //    return 0;
-   // }
-   // else {
-   //    printf("received %d\n", num_bytes);
-   //    struct message received = stringToPacket(buf);
-
-   //    if (received.type == 5) {
-   //       printf("Successfully joined session\n");
-   //       return 0;
-   //    }
-   //    else if (received.type == 6){
-   //       printf("Unable to join %s: %s \n", session_ID, received.data);
-   //       return 0;
-   //    }
-
-   // }
 
    receive(1);
    
@@ -329,8 +289,12 @@ int leavesession() {
 // create
 int createsession(char * new_session_name) {
    // check if you're in a session already
+<<<<<<< HEAD
 
    if (strcmp(session_ID, "0") != 0){
+=======
+   if (strcmp(session_ID, "0") != 0) {
+>>>>>>> e8fd949f8c33065151ea6c615a6431a5ffb7094d
       printf("Unable to create session: already in a session");
       return 0;
    }
@@ -349,30 +313,6 @@ int createsession(char * new_session_name) {
 
    printf("sent success\n");
 
-   // receive NS_ACK
-   // struct sockaddr_storage server_addr;
-   // socklen_t server_addr_len = sizeof server_addr;
-   // int num_bytes;
-
-   // char buf[1000];
-   // if ((num_bytes = recv(current_socket, buf, sizeof(buf), 0)) <= 0){
-   //    fprintf(stderr,"Recvfrom error\n");
-   //    return 0;
-   // }
-   // else {
-   //    printf("received %d\n", num_bytes);
-   //    struct message received = stringToPacket(buf);
-
-   //    if (received.type == 9) {
-   //       printf("Successfully created session\n");
-   //       return 0;
-   //    }
-   //    else {
-   //       printf("Unable to create session \n");
-   //       return 0;
-   //    }
-
-   // }
    receive(2);
 
    return 0;
@@ -394,44 +334,6 @@ int list_all() {
 
    printf("sent success\n");
    
-   // receive QU_ACK
-   // struct sockaddr_storage server_addr;
-   // socklen_t server_addr_len = sizeof server_addr;
-   // int num_bytes;
-
-   // char buf[1000];
-   // if ((num_bytes = recv(current_socket, buf, sizeof(buf), 0)) <= 0){
-   //    fprintf(stderr,"QU_ACK: Recvfrom error\n");
-   //    return 0;
-   // }
-   // else {
-   //    printf("received %d\n", num_bytes);
-   //    struct message received = {0};
-   //    received = stringToPacket(buf);
-
-   //    if (received.type == 12) {
-   //       printf("Successfully requested list of clients and available sessions\n");
-   //    }
-   //    else {
-   //       printf("Unable to receive requested list \n");
-   //       return 0;
-   //    }
-
-   // }
-
-   // receive list and print
-   // if ((num_bytes = recv(current_socket, buf, sizeof(buf), 0)) <= 0){
-   //    fprintf(stderr,"QUERY: Recvfrom error\n");
-   //    return 0;
-   // }
-   // else {
-   //    printf("received %d\n", num_bytes);
-   //    struct message received = {0};
-   //    received = stringToPacket(buf);
-
-   //    printf("%s", received.data);
-   //    return 0;
-   // }
    receive(3);
 }
 
