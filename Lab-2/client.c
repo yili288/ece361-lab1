@@ -235,11 +235,7 @@ int logout() {
 int joinsession(char* session_to_join) {
    // check if user in session already, only 1 session allowed
    if (strcmp(session_ID, "0") != 0){
-<<<<<<< HEAD
-      printf("INVALID: already in a session");
-=======
       printf("INVALID: Currently in a session");
->>>>>>> e8fd949f8c33065151ea6c615a6431a5ffb7094d
       return 0;
    }
 
@@ -289,12 +285,7 @@ int leavesession() {
 // create
 int createsession(char * new_session_name) {
    // check if you're in a session already
-<<<<<<< HEAD
-
-   if (strcmp(session_ID, "0") != 0){
-=======
    if (strcmp(session_ID, "0") != 0) {
->>>>>>> e8fd949f8c33065151ea6c615a6431a5ffb7094d
       printf("Unable to create session: already in a session");
       return 0;
    }

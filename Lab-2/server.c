@@ -162,7 +162,6 @@ int main(int argc, char *argv[]) {
             exit(4);
         }
 
-<<<<<<< HEAD
         // run through the existing connections looking for data to read
         for(i = 0; i <= fdmax; i++) {
             if (FD_ISSET(i, &read_fds)) { // we got one!! this is an fa flag
@@ -178,38 +177,6 @@ int main(int argc, char *argv[]) {
                         if (newfd > fdmax) {    // keep track of the max
                             fdmax = newfd;
                         }
-=======
-        //extract info (type,data) out from recv_buff
-        printf("start convert");
-        struct message recv_packet = stringToPacket(recv_buff);
-        printf("end converting %d", recv_packet.type);
-        
-        
-        if (recv_packet.type == 0){ //login
-                login(recv_packet, client_fd);
-        }else if(recv_packet.type == 3){
-             //exit
-                printf("exciting ..");
-                exit_conf(recv_packet, client_fd);
-         }else if(recv_packet.type == 4){
-            //join
-                join(recv_packet, client_fd);
-        }else if(recv_packet.type == 7){
-            //leave
-                leave_sess(recv_packet, client_fd);
-        }else if(recv_packet.type == 8){
-            //new
-                new_sess(recv_packet, client_fd);
-        }else if(recv_packet.type == 10){
-            //message
-                broadcast(recv_packet, client_fd);
-        }else if(recv_packet.type == 11){
-            //query
-                getActiveUserSessions(recv_packet, client_fd);
-        
-        }
-    }
->>>>>>> e8fd949f8c33065151ea6c615a6431a5ffb7094d
 
                         char host[1024];
                         char server[20];
