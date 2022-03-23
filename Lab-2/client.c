@@ -35,10 +35,38 @@ char client_ID[MAX_GENRAL]  = "0";
 char password[MAX_GENRAL]   = "0";
 char session_ID[MAX_GENRAL] = "0"; 
 
+fd_set master;    // master file descriptor list
+fd_set read_fds;  // temp file descriptor list for select()
+int fdmax;        // maximum file descriptor number
+
+int newfd;        // newly accept()ed socket descriptor
+struct sockaddr_storage remoteaddr; // client address
+socklen_t addrlen;
+
+char buf[256];    // buffer for client data
+int nbytes;
+
+char remoteIP[AF_INET];
+
+int yes=1;        // for setsockopt() SO_REUSEADDR, below
+int i, j, rv;
+
+struct addrinfo hints, *ai, *p;
+
+int through;
+
 int main(int argc, char *argv[]) {
    // initial message
    printf("To begin text conferencing, you must login as follows \n");
    printf("/login <client ID> <password> <server-IP> <server-port>\n");
+
+   FD_ZERO(&master);    // clear the master and temp sets
+   FD_ZERO(&read_fds);
+
+   struct timeval tv;
+
+   tv.tv_sec = 2;
+   tv.tv_usec = 500000;
 
    // loop until exit 
    while (1) {
@@ -141,8 +169,42 @@ int main(int argc, char *argv[]) {
          printf("/login <client ID> <password> <server-IP> <server-port> \n");
       }
 
+
       // send length of message
       // send message
+      if (logged_in == 1) {
+         for(;;) {
+            read_fds = master; // copy it
+            select(fdmax+1, &read_fds, NULL, NULL, &tv);
+            // run through the existing connections looking for data to read
+            if (FD_ISSET(fdmax, &read_fds)) { // we got one!!
+                  
+               // handle data from a client
+               if ((nbytes = recv(fdmax, buf, sizeof buf, 0)) <= 0) {
+                        // got error or connection closed by client
+                     if (nbytes == 0) {
+                        // connection closed
+                        printf("selectserver: socket %d hung up\n", i);
+                     } else {
+                        perror("recv");
+                     }
+                     close(i); // bye!
+                     FD_CLR(i, &master); // remove from master set
+               } 
+               else {
+                  printf("received %d\n", nbytes);
+                  struct message received = {0};
+                  received = stringToPacket(buf);
+                  printf("%s\n", received.data);
+                  printf("!receiver %d\n", received.type);
+               }
+            } // END got new incoming connection
+            else {
+               break;   
+            }
+         } // END for(;;)--and you thought it would never end!
+      }
+
    }
 }
 
@@ -186,6 +248,12 @@ int login(char *server_ID, char *server_port) {
    }
 
    printf("socket %d\n", current_socket);
+
+   // add the listener to the master set
+    FD_SET(current_socket, &master);
+
+    // keep track of the biggest file descriptor
+    fdmax = current_socket; // so far, it's this one
 
    // create packet
    struct message packet = {0};
