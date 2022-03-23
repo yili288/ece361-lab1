@@ -458,26 +458,24 @@ void receive(int sent_type) {
             printf("Successfully created session\n");
             return;
          }
+          // query sent_type = 3
+         else if (received.type == 12 && sent_type == 3) {
+            printf("Successfully requested list of clients and available sessions\n");
+            // print list
+            printf("%s", received.data);
+            return;
+         }
+         
          else if (sent_type = 2){
             printf("Unable to create session \n");
             return;
          }
 
-         // query sent_type = 3
-         else if (received.type == 12 && sent_type == 3) {
-            printf("Successfully requested list of clients and available sessions\n");
-            sent_type = 4;
-         }
+        
          else if (sent_type == 3) {
             printf("Unable to receive requested list \n");
             return;
          }
-
-         // get list
-         else if (sent_type == 4) {
-            printf("%s", received.data);
-            return;
-            }
       }
    }
 }
