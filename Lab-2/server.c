@@ -470,7 +470,7 @@ int broadcast(struct message packet, int receiver_fd){
             packet.type = 10;
             strcpy(packet.source, &users_db[i].name);
             //packet data kept the same
-            printf("message reply data: %s", packet.data);
+            printf("message reply data: %s\n", packet.data);
             sendPacket(packet, users_db[i].socket_fd);
 
         }
@@ -500,14 +500,14 @@ int broadcast(struct message packet, int receiver_fd){
 //User2: 5,6,7
 
 int getActiveUserSessions(struct message packet, int receiver_fd){
-    char all_info[1000];
+    char all_info[1000] = {};
 
     for(int i=0; i < NUM_ACC; i++){
         if(users_db[i].isActive){
-            strcat(all_info, accounts_db[i].name);
-            strcat(all_info, ": ");
+            strcat(all_info, &users_db[i].name);
+            strcat(all_info, ":");
             strcat(all_info, users_db[i].session_id);
-            strcat(all_info, ", ");
+            strcat(all_info, " ");
         }
     }
 
@@ -524,8 +524,7 @@ int sendPacket(struct message packet, int receiver_fd){
     char packet_buff[1000];
 
     int message = sprintf(packet_buff, "\n%d:%d:%s:%s", packet.type, packet.size, packet.source, packet.data);
-    printf("%d", message);
-    printf("%s \n", packet_buff);
+    printf("sent to client: %s \n", packet_buff);
     int len = strlen(packet_buff);
 
     //send: to client
