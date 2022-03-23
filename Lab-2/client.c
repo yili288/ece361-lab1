@@ -43,7 +43,7 @@ int newfd;        // newly accept()ed socket descriptor
 struct sockaddr_storage remoteaddr; // client address
 socklen_t addrlen;
 
-char buf[256];    // buffer for client data
+char buf[1000];    // buffer for client data
 int nbytes;
 
 char remoteIP[AF_INET];
@@ -65,15 +65,15 @@ int main(int argc, char *argv[]) {
 
    struct timeval tv;
 
-   tv.tv_sec = 2;
+   tv.tv_sec = 4;
    tv.tv_usec = 500000;
+
+    // get command   
+   char command[MAX_GENRAL]; 
+   scanf("%s", command);
 
    // loop until exit 
    while (1) {
-      // get command   
-      char command[MAX_GENRAL]; 
-      scanf("%s", command);
-
       // store command related info, send info to dedicated functions
       
       // login   
@@ -178,7 +178,7 @@ int main(int argc, char *argv[]) {
             select(fdmax+1, &read_fds, NULL, NULL, &tv);
             // run through the existing connections looking for data to read
             if (FD_ISSET(fdmax, &read_fds)) { // we got one!!
-                  
+               printf("received from server");
                // handle data from a client
                if ((nbytes = recv(fdmax, buf, sizeof buf, 0)) <= 0) {
                         // got error or connection closed by client
@@ -200,6 +200,8 @@ int main(int argc, char *argv[]) {
                }
             } // END got new incoming connection
             else {
+               printf("timeout\n");
+               scanf("%s", command);
                break;   
             }
          } // END for(;;)--and you thought it would never end!
