@@ -65,7 +65,7 @@ int main(int argc, char *argv[]) {
 
    // set timeout val
    struct timeval tv;
-   tv.tv_sec = 4;
+   tv.tv_sec = 2;
    tv.tv_usec = 500000;
 
    // loop until exit 
@@ -151,8 +151,8 @@ int main(int argc, char *argv[]) {
          // text
          else if (logged_in == 1 && session_ID != 0) {
             // get rest of text
-            char text[MAX_DATA] = "0";
-            scanf("%[^\n]s", text);
+            char text[MAX_DATA - MAX_GENRAL] = "0";
+            scanf("%[^\n]", text);
             // add remaining text to end of first word
             
             if (strcmp(text, "0") != 0) {
@@ -197,28 +197,35 @@ int main(int argc, char *argv[]) {
             // handle data from a client
             struct sockaddr_storage server_addr;
             socklen_t server_addr_len = sizeof server_addr;
-            int nbytes = 0;
+            int num_bytes;
 
             char buf[1000];
 
-            if ((nbytes = recv(current_socket, buf, sizeof buf, 0)) <= 0) {
-                     // got error or connection closed by client
-                  if (nbytes == 0) {
-                     // connection closed
-                     printf("selectserver: socket %d hung up\n", current_socket);
-                     current_socket = -1;
-                     logged_in = 0;
-                  } else {
-                     perror("recv");
-                  }
-                  // close(i); // bye!
-                  // FD_CLR(i, &master); // remove from master set
+            if ((num_bytes = recv(current_socket, buf, sizeof(buf), 0)) <= 0){
+               fprintf(stderr,"Recvfrom error\n");
+               // got error or connection closed by client
+               if (num_bytes == 0) {
+                  // connection closed
+                  printf("selectserver: socket %d hung up\n", current_socket);
+                  current_socket = -1;
+                  logged_in = 0;
+               } else {
+                  perror("recv");
+               }
+               close(current_socket); // bye!
+               FD_CLR(current_socket, &master); // remove from master set
             } 
             else {
-               printf("received %d\n", nbytes);
+               printf("received %d\n", num_bytes);
+               printf("message: %s\n", buf);
+
                struct message msg_received = {0};
                msg_received = stringToPacket(buf);
-               printf("%s\n", msg_received.data);
+
+               if (msg_received.type == 10) {
+                  printf("%s: %s\n", msg_received.source, msg_received.data);
+               }
+               
                // printf("!receiver %d\n", received.type);
             }
             
