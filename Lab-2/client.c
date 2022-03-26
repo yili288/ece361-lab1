@@ -57,154 +57,178 @@ int through;
 
 int main(int argc, char *argv[]) {
    // initial message
-   printf("To begin text conferencing, you must login as follows \n");
+   printf("Login to begin text conferencing \n");
    printf("/login <client ID> <password> <server-IP> <server-port>\n");
 
-   FD_ZERO(&master);    // clear the master and temp sets
-   FD_ZERO(&read_fds);
+   // FD_ZERO(&master);    // clear the master and temp sets
+   // FD_ZERO(&read_fds);
 
+   // set timeout val
    struct timeval tv;
-
    tv.tv_sec = 4;
    tv.tv_usec = 500000;
 
-    // get command   
-   char command[MAX_GENRAL]; 
-   scanf("%s", command);
-
    // loop until exit 
    while (1) {
-      // store command related info, send info to dedicated functions
+      FD_ZERO(&read_fds); // clear set
+      FD_SET(0, &read_fds); // add listener for input
+
+      if (current_socket > 0) {
+         FD_SET(current_socket, &read_fds); // add listener for server
+         select(current_socket+1, &read_fds, NULL, NULL, NULL);
+      }
       
-      // login   
-      if (strcmp(command, "/login") == 0 && logged_in == 0) {
-         char server_IP[MAX_GENRAL];
-         char server_port[MAX_GENRAL]; 
-         scanf("%s %s %s %s", client_ID, password, server_IP, server_port);
-         printf("login \n");
+      // if input is heard
+      if(FD_ISSET(0, &read_fds)) {    
+
+         // store command related info, send info to dedicated functions
+         char command[MAX_GENRAL]; 
+         scanf("%s", command);
          
-         login(server_IP, server_port);
-      }
-      else if (strcmp(command, "/login") == 0 && logged_in == 1) {
-         printf("Already logged in. To login to a diffrent account you must first logout of this account.");
-      }
-      // logout
-      else if (strcmp(command, "/logout") == 0 && logged_in == 1) {
-         printf("logout \n");
-         logout();
-      }
-      
-      // join
-      else if (strcmp(command, "/joinsession") == 0 && logged_in == 1) {
-         char session_to_join[MAX_GENRAL]; 
-         scanf("%s", session_to_join);
-         printf("join \n");
-         joinsession(session_to_join);
-      }
+         // login   
+         if (strcmp(command, "/login") == 0 && logged_in == 0) {
+            char server_IP[MAX_GENRAL];
+            char server_port[MAX_GENRAL]; 
+            scanf("%s %s %s %s", client_ID, password, server_IP, server_port);
+            printf("login \n");
+            
+            login(server_IP, server_port);
+         }
+         else if (strcmp(command, "/login") == 0 && logged_in == 1) {
+            printf("Already logged in. To login to a diffrent account you must first logout of this account.");
+         }
+         // logout
+         else if (strcmp(command, "/logout") == 0 && logged_in == 1) {
+            printf("logout \n");
+            logout();
+         }
+         
+         // join
+         else if (strcmp(command, "/joinsession") == 0 && logged_in == 1) {
+            char session_to_join[MAX_GENRAL]; 
+            scanf("%s", session_to_join);
+            printf("join \n");
+            joinsession(session_to_join);
+         }
 
-      //leave
-      else if (strcmp(command, "/leavesession") == 0 && logged_in == 1) {
-         printf("leave \n");
-         leavesession();
-      }
+         //leave
+         else if (strcmp(command, "/leavesession") == 0 && logged_in == 1) {
+            printf("leave \n");
+            leavesession();
+         }
 
-      // create
-      else if (strcmp(command, "/createsession") == 0 && logged_in == 1) {
+         // create
+         else if (strcmp(command, "/createsession") == 0 && logged_in == 1) {
 
-         // check if you're in a session already
-         if (strcmp(session_ID, "0") != 0) {
-            printf("Unable to create session: already in a session");
+            // check if you're in a session already
+            if (strcmp(session_ID, "0") != 0) {
+               printf("Unable to create session: already in a session");
+               return 0;
+            }
+
+            char new_session[MAX_GENRAL]; 
+
+            scanf("%s", new_session);
+            strcpy(session_ID, new_session);
+            printf("new session name: %s ", new_session);
+            printf("create \n");
+            createsession(new_session);
+         }
+
+         // list
+         else if (strcmp(command, "/list") == 0 && logged_in == 1) {
+            printf("list \n");
+            list_all();
+         }
+
+         // quit
+         else if (strcmp(command, "/quit") == 0) {
+            printf("Quitting the program \n");
+            close(current_socket);
             return 0;
          }
 
-         char new_session[MAX_GENRAL]; 
-
-         scanf("%s", new_session);
-         strcpy(session_ID, new_session);
-         printf("new session name: %s ", new_session);
-         printf("create \n");
-         createsession(new_session);
-      }
-
-      // list
-      else if (strcmp(command, "/list") == 0 && logged_in == 1) {
-         printf("list \n");
-         list_all();
-      }
-
-      // quit
-      else if (strcmp(command, "/quit") == 0) {
-         printf("Quitting the program \n");
-         close(current_socket);
-         return 0;
-      }
-
-      // text
-      else if (logged_in == 1) {
-         // get rest of text
-         char text[MAX_DATA];
-         scanf("%[^\n]s", text);
-         // add remaining text to end of first word
-         strcat(command, text);
-         printf("text \n");
-         
-         struct message packet = {0};
-         packet.type = 10;
-         strcpy(packet.source, client_ID);
-
-         strcpy(packet.data, command);
-         packet.size = sizeof(packet);
-
-         printf("%d:%d:%s:%s\n", packet.type, packet.size, packet.source, packet.data);
-
-         // send username and password
-         send_data(packet);
-
-         printf("sent success\n");
-      }
-      
-      // not logged in but sending things
-      else {
-         printf("Please login first. \n"); 
-         printf("/login <client ID> <password> <server-IP> <server-port> \n");
-      }
-
-
-      // send length of message
-      // send message
-      if (logged_in == 1) {
-         for(;;) {
-            read_fds = master; // copy it
-            select(fdmax+1, &read_fds, NULL, NULL, &tv);
-            // run through the existing connections looking for data to read
-            if (FD_ISSET(fdmax, &read_fds)) { // we got one!!
-               printf("received from server");
-               // handle data from a client
-               if ((nbytes = recv(fdmax, buf, sizeof buf, 0)) <= 0) {
-                        // got error or connection closed by client
-                     if (nbytes == 0) {
-                        // connection closed
-                        printf("selectserver: socket %d hung up\n", i);
-                     } else {
-                        perror("recv");
-                     }
-                     close(i); // bye!
-                     FD_CLR(i, &master); // remove from master set
-               } 
-               else {
-                  printf("received %d\n", nbytes);
-                  struct message received = {0};
-                  received = stringToPacket(buf);
-                  printf("%s\n", received.data);
-                  printf("!receiver %d\n", received.type);
-               }
-            } // END got new incoming connection
-            else {
-               printf("timeout\n");
-               scanf("%s", command);
-               break;   
+         // text
+         else if (logged_in == 1 && session_ID != 0) {
+            // get rest of text
+            char text[MAX_DATA] = "0";
+            scanf("%[^\n]s", text);
+            // add remaining text to end of first word
+            
+            if (strcmp(text, "0") != 0) {
+               strcat(command, text);
             }
-         } // END for(;;)--and you thought it would never end!
+            
+            printf("text \n");
+            
+            struct message packet = {0};
+            packet.type = 10;
+            strcpy(packet.source, client_ID);
+
+            strcpy(packet.data, command);
+            packet.size = sizeof(packet);
+
+            printf("%d:%d:%s:%s\n", packet.type, packet.size, packet.source, packet.data);
+
+            // send username and password
+            send_data(packet);
+
+            printf("sent success\n");
+         }
+         
+         // not logged in but sending things
+         else {
+            printf("Please login first. \n"); 
+            printf("/login <client ID> <password> <server-IP> <server-port> \n");
+         }
+      }
+
+      // if server sends something
+      else if (FD_ISSET(current_socket, &read_fds) && logged_in == 1) {
+         // for(;;) {
+            // read_fds = master; // copy it
+
+            // select(current_socket+1, &read_fds, NULL, NULL, &tv);
+            // run through the existing connections looking for data to read
+            // if (FD_ISSET(fdmax, &read_fds)) { // we got one!!
+            
+            printf("received from server\n");
+
+            // handle data from a client
+            struct sockaddr_storage server_addr;
+            socklen_t server_addr_len = sizeof server_addr;
+            int nbytes = 0;
+
+            char buf[1000];
+
+            if ((nbytes = recv(current_socket, buf, sizeof buf, 0)) <= 0) {
+                     // got error or connection closed by client
+                  if (nbytes == 0) {
+                     // connection closed
+                     printf("selectserver: socket %d hung up\n", current_socket);
+                     current_socket = -1;
+                     logged_in = 0;
+                  } else {
+                     perror("recv");
+                  }
+                  // close(i); // bye!
+                  // FD_CLR(i, &master); // remove from master set
+            } 
+            else {
+               printf("received %d\n", nbytes);
+               struct message msg_received = {0};
+               msg_received = stringToPacket(buf);
+               printf("%s\n", msg_received.data);
+               // printf("!receiver %d\n", received.type);
+            }
+            
+            // } // END got new incoming connection
+            // else {
+            //    printf("timeout\n");
+            //    scanf("%s", command);
+            //    break;   
+            // }
+         // } // END for(;;)--and you thought it would never end!
       }
 
    }
@@ -427,6 +451,7 @@ int send_data (struct message packet) {
    if((num_bytes = send(current_socket, packet_buffer, sizeof(packet_buffer), 0)) == -1) { 
       printf("send error");
    }
+
    return 0;
 }
 
@@ -472,13 +497,13 @@ struct message stringToPacket(char * buffer){
         current_char += 1;
     }
 
-    printf("data: %s\n", recv_packet.source);
+    printf("data: %s\n", recv_packet.data);
 
     return recv_packet;
 }
 
 void receive(int sent_type) {
-   while (1) {
+   // while (1) {
       struct sockaddr_storage server_addr;
       socklen_t server_addr_len = sizeof server_addr;
       int num_bytes;
@@ -505,6 +530,7 @@ void receive(int sent_type) {
          // login sent_type = 0
          else if (received.type == 1 && sent_type == 0) {
             printf("Successfully logged in\n");
+            printf("Connected to socket: %d", current_socket);
             logged_in = 1;
             return;
          }
@@ -547,5 +573,5 @@ void receive(int sent_type) {
             return;
          }
       }
-   }
+   // }
 }
