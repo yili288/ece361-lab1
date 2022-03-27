@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <netdb.h>
@@ -27,19 +28,6 @@ int getActiveUserSessions(struct message packet, int receiver_fd);
 
 int sendPacket(struct message packet, int receiver_fd);
 
-//index of account_db correlates with index of users_db
-
-typedef struct account {
-    char name[1];
-    char password[2];
-} Account;
-
-Account accounts_db[NUM_ACC] = {{"a","aa"},{"b","bb"},{"c","cc"},{"d","dd"},
-                            {"e","ee"},{"f","ff"},{"g","gg"},{"h","hh"},
-                            {"i","ii"},{"j","jj"},{"k","kk"},{"l","ll"},
-                            {"m","mm"},{"n","nn"},{"o","oo"},{"p","pp"},
-                            {"q","qq"},{"r","rr"},{"s","ss"},{"t","tt"}};
-
 
 typedef struct client {
     char name;
@@ -59,10 +47,6 @@ Session sessions_db[NUM_ACC];
 
 //construct
 //lo_ack,lo_nak, jn_ack,jn_nak, ns_ack, qu_ack
-
-void makeAckPacket(char* data){
-    struct message packet = {0};
-}
 
 //deconstruct
 //login, exit, join, leave_sess,new_sess, message, query
@@ -247,7 +231,6 @@ int main(int argc, char *argv[]) {
 int login(struct message packet, int receiver_fd){
     struct message ack_pack = {0};
     strcpy(ack_pack.source, packet.source);
-    //printf("!! %s == %s", accounts_db[0].name, packet.source);
 
     FILE* accs;
     char line[10];
@@ -265,9 +248,10 @@ int login(struct message packet, int receiver_fd){
             //check password
             if(strstr(line, packet.data) != NULL ){
                 if(users_db[i].isActive == false){
-                    printf("saved user location %d\n", i); 
+                    printf("saved user location %d ", i); 
                     users_db[i].isActive = true;
                     users_db[i].socket_fd = receiver_fd;
+                    printf("saved value %d\n", users_db[i].socket_fd);
                     users_db[i].name = line[0];
 
                     //send LO_ACK
@@ -311,12 +295,6 @@ int login(struct message packet, int receiver_fd){
 //handle exit packet:
 //for 3rd field, set active to false (users_db)
 int exit_conf(struct message packet, int receiver_fd){
-
-    /*for(int i=0; i < NUM_ACC; i++){
-        if(strcmp(accounts_db[i].name, packet.source) == 0){
-            users_db[i].isActive = false;
-        }
-    }*/
 
     printf("exit func: %s %d\n", packet.source, (int)'a');
     int i = (int)packet.source[0] - (int)'a';
@@ -460,13 +438,14 @@ int new_sess(struct message packet, int receiver_fd){
 int broadcast(struct message packet, int receiver_fd){
 
     char* session;
-
+    printf("1\n");
     int index = (int)*packet.source - (int)'a';
     session = users_db[index].session_id;
-
+    printf("2\n");
     for(int i=0; i < NUM_ACC; i++){
+        printf("3\n");
         if(users_db[i].session_id != NULL && strcmp(users_db[i].session_id, session) == 0){
-
+            printf("4\n");
             packet.type = 10;
             strcpy(packet.source, &users_db[i].name);
             //packet data kept the same
@@ -475,6 +454,10 @@ int broadcast(struct message packet, int receiver_fd){
 
         }
     }
+
+    return 1;
+
+    //if no sessions exist to send the message to
 /*
     // we got some data from a client
     for(j = 0; j <= fdmax; j++) {
@@ -516,6 +499,7 @@ int getActiveUserSessions(struct message packet, int receiver_fd){
     packet.size = sizeof(packet);
     
     sendPacket(packet, receiver_fd);
+    return 1;
 
 }
 
@@ -526,7 +510,7 @@ int sendPacket(struct message packet, int receiver_fd){
     int message = sprintf(packet_buff, "\n%d:%d:%s:%s", packet.type, packet.size, packet.source, packet.data);
     printf("sent to client: %s \n", packet_buff);
     int len = strlen(packet_buff);
-
+    printf("receive fd %d\n", receiver_fd);
     //send: to client
     int send_res = send(receiver_fd, packet_buff, len, 0);
     if(send_res < 0){
