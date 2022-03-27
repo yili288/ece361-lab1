@@ -166,7 +166,7 @@ int main(int argc, char *argv[]) {
             strcpy(packet.source, client_ID);
 
             strcpy(packet.data, command);
-            packet.size = sizeof(packet);
+            packet.size = strlen(packet.data);
 
             printf("%d:%d:%s:%s\n", packet.type, packet.size, packet.source, packet.data);
 
@@ -293,7 +293,7 @@ int login(char *server_ID, char *server_port) {
    packet.type = 0;
    strcpy(packet.source, client_ID);
    strcpy(packet.data, password);
-   packet.size = sizeof(password);
+   packet.size = strlen(password);
 
    printf("%d:%d:%s:%s\n", packet.type, packet.size, packet.source, packet.data);
 
@@ -321,7 +321,7 @@ int logout() {
    packet.type = 3;
    strcpy(packet.source, client_ID);
    strcpy(packet.data, "0");
-   packet.size = sizeof(packet);
+   packet.size = 1;
 
    printf("%d:%d:%s:%s\n", packet.type, packet.size, packet.source, packet.data);
 
@@ -354,7 +354,7 @@ int joinsession(char* session_to_join) {
    packet.type = 4;
    strcpy(packet.source, client_ID);
    strcpy(packet.data, session_to_join);
-   packet.size = sizeof(packet);
+   packet.size = strlen(packet.data);
 
    printf("%d:%d:%s:%s\n", packet.type, packet.size, packet.source, packet.data);
 
@@ -383,7 +383,7 @@ int leavesession() {
    packet.type = 7;
    strcpy(packet.source, client_ID);
    strcpy(packet.data, "0");
-   packet.size = sizeof(packet);
+   packet.size = 1;
 
    printf("%d:%d:%s:%s\n", packet.type, packet.size, packet.source, packet.data);
 
@@ -406,7 +406,7 @@ int createsession(char * new_session_name) {
    packet.type = 8;
    strcpy(packet.source, client_ID);
    strcpy(packet.data, new_session_name);
-   packet.size = sizeof(packet);
+   packet.size = strlen(packet.data);
 
    printf("%d:%d:%s:%s\n", packet.type, packet.size, packet.source, packet.data);
 
@@ -427,7 +427,7 @@ int list_all() {
    packet.type = 11;
    strcpy(packet.source, client_ID);
    strcpy(packet.data, session_ID);
-   packet.size = sizeof(packet);
+   packet.size = strlen(packet.data);
 
    printf("%d:%d:%s:%s\n", packet.type, packet.size, packet.source, packet.data);
 
@@ -498,7 +498,6 @@ struct message stringToPacket(char * buffer){
     printf("source: %s\n", recv_packet.source);
     current_char += 1;
 
-    //data something wrong here?
     for(int i = 0; i < recv_packet.size; i++){
         recv_packet.data[i] = *current_char;
         current_char += 1;
