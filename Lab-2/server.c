@@ -505,12 +505,14 @@ int getActiveUserSessions(struct message packet, int receiver_fd){
 
 
 int sendPacket(struct message packet, int receiver_fd){
-    char packet_buff[1000];
+    // char packet_buff[1000];
+    char packet_buff[sizeof (struct message)];
 
     int message = sprintf(packet_buff, "\n%d:%d:%s:%s", packet.type, packet.size, packet.source, packet.data);
     printf("sent to client: %s \n", packet_buff);
-    int len = strlen(packet_buff);
-    printf("receive fd %d\n", receiver_fd);
+    int len = sizeof(packet_buff);
+    printf("%s \n", packet_buff);
+
     //send: to client
     int send_res = send(receiver_fd, packet_buff, len, 0);
     if(send_res < 0){
