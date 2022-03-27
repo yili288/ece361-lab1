@@ -192,7 +192,7 @@ int main(int argc, char *argv[]) {
             // run through the existing connections looking for data to read
             // if (FD_ISSET(fdmax, &read_fds)) { // we got one!!
             
-            printf("received from server\n");
+            printf("\nreceived from server\n");
 
             // handle data from a client
             struct sockaddr_storage server_addr;
@@ -216,8 +216,8 @@ int main(int argc, char *argv[]) {
                FD_CLR(current_socket, &master); // remove from master set
             } 
             else {
-               printf("received %d\n", num_bytes);
-               printf("message: %s\n", buf);
+               //printf("received %d\n", num_bytes);
+               //printf("message: %s\n", buf);
 
                struct message msg_received = {0};
                msg_received = stringToPacket(buf);
@@ -498,7 +498,7 @@ struct message stringToPacket(char * buffer){
     printf("source: %s\n", recv_packet.source);
     current_char += 1;
 
-    //data
+    //data something wrong here?
     for(int i = 0; i < recv_packet.size; i++){
         recv_packet.data[i] = *current_char;
         current_char += 1;

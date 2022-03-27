@@ -237,13 +237,13 @@ int login(struct message packet, int receiver_fd){
 
     accs = fopen("accounts.txt", "r");
     int res;
+    int i = (int)line[0] - (int)'a'; 
 
     while(res != EOF || res == 0){
         
         res = fscanf(accs,"%s", line);
         if(strstr(line, packet.source) != NULL ){ //user exists
-            printf("user index %c, %d, %d", line[0], (int)line[0], (int)'a'); 
-            int i = (int)line[0] - (int)'a'; 
+            printf("user index %c, %d, %d", line[0], (int)line[0], (int)'a');   
 
             //check password
             if(strstr(line, packet.data) != NULL ){
@@ -257,23 +257,25 @@ int login(struct message packet, int receiver_fd){
                     //send LO_ACK
                     ack_pack.type = 1;
                     strcpy(ack_pack.data, "0");
-                    ack_pack.size = sizeof(packet);
+                    ack_pack.size = sizeof(ack_pack.data);
                     sendPacket(ack_pack, receiver_fd);
                     return 1;
                 }else{
                     //send LO_NACK
+                    users_db[i].isActive = false;
                     ack_pack.type = 2;
                     strcpy(ack_pack.data, "user already logged in");
-                    ack_pack.size = sizeof(packet);
+                    ack_pack.size = sizeof(ack_pack.data);
                     sendPacket(ack_pack, receiver_fd);
                     return -1;
                 }
             }else{
                 //password is wrong
                 //send LO_NACK
+                users_db[i].isActive = false;
                 ack_pack.type = 2;
                 strcpy(ack_pack.data, "wrong password");
-                ack_pack.size = sizeof(packet);
+                ack_pack.size = sizeof(ack_pack.data);
                 sendPacket(ack_pack, receiver_fd);
                 return -1;
             }
@@ -282,9 +284,10 @@ int login(struct message packet, int receiver_fd){
     }
     
     //send LO_NACK
+    users_db[i].isActive = false;
     ack_pack.type = 2;
     strcpy(ack_pack.data, "user account not found");
-    ack_pack.size = sizeof(packet);
+    ack_pack.size = sizeof(ack_pack.data);
     sendPacket(ack_pack, receiver_fd);
     return -1;
 
@@ -303,7 +306,8 @@ int exit_conf(struct message packet, int receiver_fd){
     users_db[i].socket_fd = -1;
 
     for(int i=0; i < NUM_ACC; i++){
-        if(users_db[i].session_id != NULL && strcmp(sessions_db[i].session_id, users_db[i].session_id) == 0){
+        if(users_db[i].session_id != NULL && sessions_db[i].session_id != NULL
+            && strcmp(sessions_db[i].session_id, users_db[i].session_id) == 0){
             sessions_db[i].num_ppl -= 1;
             users_db[i].session_id = NULL;
         }
@@ -349,6 +353,7 @@ int join(struct message packet, int receiver_fd){
                             sessions_db[i].num_ppl += 1;
                             //JN_ACK
                             packet.type = 5;
+                            packet.size = sizeof(packet.data);
                             sendPacket(packet, receiver_fd);
                             return 1;
                         }
@@ -359,6 +364,7 @@ int join(struct message packet, int receiver_fd){
                     //user not active
                     packet.type = 6;
                     strcpy(packet.data, "account not active, please login");
+                    packet.size = sizeof(packet.data);
                     sendPacket(packet, receiver_fd);
                 }
                 
@@ -369,6 +375,7 @@ int join(struct message packet, int receiver_fd){
         //user not exists
         packet.type = 6;
         strcpy(packet.data, "session does not exists");
+        packet.size = sizeof(packet.data);
         sendPacket(packet, receiver_fd);
     }
     return -1;
@@ -408,7 +415,7 @@ int new_sess(struct message packet, int receiver_fd){
     int index = (int)*packet.source - (int)'a'; 
     printf("new sess name: %s\n", packet.data);
     for(int i=0; i < NUM_ACC; i++){
-        if(sessions_db[i].session_id == NULL){
+        if(users_db[i].isActive == true && sessions_db[i].session_id == NULL){
             sessions_db[i].session_id = packet.data;
             sessions_db[i].num_ppl = 1;
 
@@ -421,7 +428,7 @@ int new_sess(struct message packet, int receiver_fd){
             //send NS_ACK
             packet.type = 9;
             strcpy(packet.data, "0");
-            packet.size = sizeof(packet);
+            packet.size = sizeof(packet.data);
             sendPacket(packet, receiver_fd);
             return 1;
         }
@@ -438,40 +445,28 @@ int new_sess(struct message packet, int receiver_fd){
 int broadcast(struct message packet, int receiver_fd){
 
     char* session;
-    printf("1\n");
     int index = (int)*packet.source - (int)'a';
     session = users_db[index].session_id;
-    printf("2\n");
-    for(int i=0; i < NUM_ACC; i++){
-        printf("3\n");
-        if(users_db[i].session_id != NULL && strcmp(users_db[i].session_id, session) == 0){
-            printf("4\n");
-            packet.type = 10;
-            strcpy(packet.source, &users_db[i].name);
-            //packet data kept the same
-            printf("message reply data: %s\n", packet.data);
-            sendPacket(packet, users_db[i].socket_fd);
+    //packet.source stays the same because the receiver needs to know who the sender is
+    
+    char sender[5];
+    // convert int to string [buf]
+    snprintf(sender, sizeof(sender), "%d", packet.source);
 
+    for(int i=0; i < NUM_ACC; i++){
+        if(users_db[i].session_id != NULL && strcmp(users_db[i].session_id, session) == 0){
+            //don't send to the initial sender
+            if(strcmp(&users_db[i].name, sender) != 0){
+                packet.type = 10;
+                //packet data kept the same
+                printf("message reply data: %s\n", packet.data);
+                packet.size = sizeof(packet.data);
+                sendPacket(packet, users_db[i].socket_fd);
+            }
         }
     }
 
     return 1;
-
-    //if no sessions exist to send the message to
-/*
-    // we got some data from a client
-    for(j = 0; j <= fdmax; j++) {
-        // send to everyone!
-        if (FD_ISSET(j, &master)) {
-            // except the listener and ourselves
-            if (j != tcp_socket && j != i) {
-                if (send(j, buf, nbytes, 0) == -1) {
-                    perror("send");
-                }
-            }
-        }
-    }
-   */   
 
 }
 
@@ -496,8 +491,7 @@ int getActiveUserSessions(struct message packet, int receiver_fd){
 
     packet.type = 12;
     strcpy(packet.data, all_info);
-    packet.size = sizeof(packet);
-    
+    packet.size = sizeof(packet.data);
     sendPacket(packet, receiver_fd);
     return 1;
 
@@ -511,7 +505,6 @@ int sendPacket(struct message packet, int receiver_fd){
     int message = sprintf(packet_buff, "\n%d:%d:%s:%s", packet.type, packet.size, packet.source, packet.data);
     printf("sent to client: %s \n", packet_buff);
     int len = sizeof(packet_buff);
-    printf("%s \n", packet_buff);
 
     //send: to client
     int send_res = send(receiver_fd, packet_buff, len, 0);
