@@ -524,7 +524,13 @@ struct message stringToPacket(char * buffer){
         strncat(type,current_char,1);
         current_char += 1;
     }
-    pack.type = atoi(type);
+    int number = atoi(type);
+    if(number >= 13){
+        return pack;
+    }
+    pack.type = number;
+
+    
     current_char += 1;
 
     char size[4] = "";
@@ -533,14 +539,6 @@ struct message stringToPacket(char * buffer){
         current_char += 1;
     }
     pack.size = atoi(size);
-    /*current_char += 1;  //skip the semicolon
-
-    printf("\npacket type %d, size %d\n", pack.type, pack.size);
-
-    strcpy(pack.source, &current_char[0]); //need to fix this
-    printf("source: %s\n", pack.source);
-    current_char += 1;*/
-
     current_char += 1;
 
     printf("\npacket type %d, size %d\n", pack.type, pack.size);
