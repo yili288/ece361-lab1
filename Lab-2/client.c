@@ -123,16 +123,16 @@ int main(int argc, char *argv[]) {
             // check if you're in a session already
             if (strcmp(session_ID, "0") != 0) {
                printf("Unable to create session: already in a session");
-               return 0;
             }
+            else {
+               char new_session[MAX_GENRAL]; 
 
-            char new_session[MAX_GENRAL]; 
-
-            scanf("%s", new_session);
-            strcpy(session_ID, new_session);
-            printf("new session name: %s ", new_session);
-            printf("create \n");
-            createsession(new_session);
+               scanf("%s", new_session);
+               strcpy(session_ID, new_session);
+               printf("new session name: %s ", new_session);
+               printf("create \n");
+               createsession(new_session);
+            }
          }
 
          // list
@@ -564,7 +564,7 @@ void receive(int sent_type) {
          else if (received.type == 12 && sent_type == 3) {
             printf("Successfully requested list of clients and available sessions\n");
             // print list
-            printf("%s", received.data);
+            printf(" List: %s \n", received.data);
             return;
          }
          
