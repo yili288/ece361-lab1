@@ -16,7 +16,7 @@
 /login a aa 128.100.13.250 1055
 */
 
-int login(char *server_ID, char *server_port);
+int login(char *server_ID, char *server_port, int l_or_r);
 int logout();
 int joinsession();
 int leavesession();
@@ -86,13 +86,19 @@ int main(int argc, char *argv[]) {
          scanf("%s", command);
          
          // login   
-         if (strcmp(command, "/login") == 0 && logged_in == 0) {
+         if ((strcmp(command, "/login") == 0 || strcmp(command, "/register") == 0) && logged_in == 0) {
             char server_IP[MAX_GENRAL];
             char server_port[MAX_GENRAL]; 
             scanf("%s %s %s %s", client_ID, password, server_IP, server_port);
             printf("login \n");
             
-            login(server_IP, server_port);
+            int l_or_r = 0; // 0 means login
+
+            if (strcmp(command, "/register") == 0){   
+               l_or_r = 1;  // 1 means register
+            }
+
+            login(server_IP, server_port, l_or_r);
          }
          else if (strcmp(command, "/login") == 0 && logged_in == 1) {
             printf("Already logged in. To login to a diffrent account you must first logout of this account.");
@@ -242,7 +248,7 @@ int main(int argc, char *argv[]) {
 }
 
 //login
-int login(char *server_ID, char *server_port) {
+int login(char *server_ID, char *server_port, int l_or_r) {
 
    // connect to server
    
@@ -290,7 +296,13 @@ int login(char *server_ID, char *server_port) {
 
    // create packet
    struct message packet = {0};
-   packet.type = 0;
+   if (l_or_r == 0) {
+      packet.type = 0;  // 0 means login
+   }
+   else {
+      packet.type = 13; // 13 means register
+   }
+   
    strcpy(packet.source, client_ID);
    strcpy(packet.data, password);
    packet.size = strlen(password);
