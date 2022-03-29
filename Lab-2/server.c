@@ -186,7 +186,7 @@ int main(int argc, char *argv[]) {
                         //printf("start convert");
                         struct message recv_packet = {0};
                         recv_packet = stringToPacket(buf);
-                        //printf("end converting\n");
+                        printf("end converting\n");
                         
                         if (recv_packet.type == 0){ 
                             //login
@@ -338,7 +338,9 @@ int join(struct message packet, int receiver_fd){
         int i = (int)*packet.source - (int)'a'; 
                 if(users_db[i].isActive){
                     if(users_db[i].session_id == NULL){
-                        users_db[i].session_id = packet.data;
+                        char * ptr = malloc(sizeof(packet.data));
+                        strcpy(ptr, packet.data);
+                        users_db[i].session_id = ptr;
                     }else{
                         strcpy(users_db[i].session_id, packet.data);
                     }
@@ -385,7 +387,6 @@ int leave_sess(struct message packet, int receiver_fd){
 
     
     int i = (int)*packet.source - (int)'a'; 
-    users_db[i].isActive = false;
 
     for(int i=0; i < NUM_ACC; i++){
         if(sessions_db[i].session_id != NULL && strcmp(sessions_db[i].session_id, packet.data) == 0){
@@ -409,7 +410,7 @@ int leave_sess(struct message packet, int receiver_fd){
 //success: NS_ACK
 int new_sess(struct message packet, int receiver_fd){
     int index = (int)*packet.source - (int)'a'; 
-    
+
     for(int i=0; i < NUM_ACC; i++){
         if(users_db[i].isActive == true && sessions_db[i].session_id == NULL){
             sessions_db[i].session_id = packet.data;
@@ -444,24 +445,21 @@ int new_sess(struct message packet, int receiver_fd){
 //get all users with this session id
 int broadcast(struct message packet, int receiver_fd){
 
-    char* session;
     int index = (int)*packet.source - (int)'a';
-    session = users_db[index].session_id;
+    char* session = users_db[index].session_id;
     //packet.source stays the same because the receiver needs to know who the sender is
-    
-    //char sender[5];
-    // convert int to string [buf]
-    //snprintf(sender, sizeof(sender), "%d", packet.source);
 
     for(int i=0; i < NUM_ACC; i++){
         if(users_db[i].session_id != NULL && strcmp(users_db[i].session_id, session) == 0){
-            //don't send to the initial sender
+            
             if(users_db[i].name != packet.source[0]){
                 packet.type = 10;
                 //packet data kept the same
                 printf("message reply data: %s\n", packet.data);
                 packet.size = strlen(packet.data);
                 sendPacket(packet, users_db[i].socket_fd);
+            }else{
+                //don't send to the initial sender
             }
         }
     }
