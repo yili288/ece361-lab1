@@ -493,7 +493,11 @@ int getActiveUserSessions(struct message packet, int receiver_fd){
         if(users_db[i].isActive){
             strcat(all_info, &users_db[i].name);
             strcat(all_info, ":");
-            strcat(all_info, users_db[i].session_id);
+            if(users_db[i].session_id == NULL){
+                strcat(all_info, "no session");
+            }else{
+                strcat(all_info, users_db[i].session_id);
+            }
             strcat(all_info, " ");
         }
     }
