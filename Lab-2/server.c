@@ -183,10 +183,10 @@ int main(int argc, char *argv[]) {
                         FD_CLR(i, &master); // remove from master set
                     } else {
                         //extract info (type,data) out from recv_buff
-                        printf("start convert");
+                        //printf("start convert");
                         struct message recv_packet = {0};
                         recv_packet = stringToPacket(buf);
-                        printf("end converting %s, %d\n", recv_packet.source, recv_packet.type);
+                        //printf("end converting\n");
                         
                         if (recv_packet.type == 0){ 
                             //login
@@ -243,14 +243,14 @@ int login(struct message packet, int receiver_fd){
         res = fscanf(accs,"%s", line);
         if(strstr(line, packet.source) != NULL ){ //user exists
             int idx = line[0] - 'a'; 
-            printf("user index %d = %d - %d\n", idx, (int)line[0], (int)'a');   
+            //printf("user index %d = %d - %d\n", idx, (int)line[0], (int)'a');   
 
             //check password
             if(strstr(line, packet.data) != NULL ){
                 if(users_db[idx].isActive == false){
                     users_db[idx].isActive = true;
                     users_db[idx].socket_fd = receiver_fd;
-                    printf("saved value %d\n", users_db[idx].socket_fd);
+                    //printf("saved value %d\n", users_db[idx].socket_fd);
                     users_db[idx].name = line[0];
 
                     //send LO_ACK
@@ -409,14 +409,18 @@ int leave_sess(struct message packet, int receiver_fd){
 //success: NS_ACK
 int new_sess(struct message packet, int receiver_fd){
     int index = (int)*packet.source - (int)'a'; 
-    printf("new sess name: %s\n", packet.data);
+    
     for(int i=0; i < NUM_ACC; i++){
         if(users_db[i].isActive == true && sessions_db[i].session_id == NULL){
             sessions_db[i].session_id = packet.data;
             sessions_db[i].num_ppl = 1;
 
             if(users_db[index].session_id == NULL){
-                users_db[index].session_id = packet.data;
+                char * ptr = malloc(sizeof(packet.data));
+                strcpy(ptr, packet.data);
+                users_db[index].session_id = ptr;
+                
+                printf("new sess name: %s\n", users_db[index].session_id);
             }else{
                 strcpy(users_db[index].session_id,packet.data);
             }
@@ -541,7 +545,7 @@ struct message stringToPacket(char * buffer){
     pack.size = atoi(size);
     current_char += 1;
 
-    printf("\npacket type %d, size %d\n", pack.type, pack.size);
+    printf("\nReceived packet type: %d, size: %d\n", pack.type, pack.size);
 
     char source[1] = {0};
     while(current_char[0] != ':'){
