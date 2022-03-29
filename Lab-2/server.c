@@ -148,6 +148,7 @@ int main(int argc, char *argv[]) {
 
         // run through the existing connections looking for data to read
         for(i = 0; i <= fdmax; i++) {
+            
             if (FD_ISSET(i, &read_fds)) { // we got one!! this is an fa flag
                 if (i == tcp_socket) {
                     // handle new connections
@@ -179,6 +180,16 @@ int main(int argc, char *argv[]) {
                         } else {
                             perror("recv");
                         }
+
+                        for(int i=0; i < NUM_ACC ; i++){
+                            if(users_db[i].socket_fd == i){   //reset user info
+                                users_db[i].name = ' ';
+                                users_db[i].session_id = NULL;
+                                users_db[i].socket_fd = -1;
+                                users_db[i].isActive = false;
+                            }
+                        }
+                        
                         close(i); // bye!
                         FD_CLR(i, &master); // remove from master set
                     } else {
