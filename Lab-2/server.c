@@ -197,7 +197,7 @@ int main(int argc, char *argv[]) {
                         //printf("start convert");
                         struct message recv_packet = {0};
                         recv_packet = stringToPacket(buf);
-                        printf("end converting\n");
+                        //printf("end converting\n");
                         
                         if (recv_packet.type == 0){ 
                             //login
@@ -306,9 +306,9 @@ int login(struct message packet, int receiver_fd){
 //for 3rd field, set active to false (users_db)
 int exit_conf(struct message packet, int receiver_fd){
 
-    printf("exit func: %s %d\n", packet.source, (int)'a');
+    //printf("exit func: %s %d\n", packet.source, (int)'a');
     int i = (int)packet.source[0] - (int)'a';
-    printf("user location %d\n", i); 
+    //printf("user location %d\n", i); 
     users_db[i].isActive = false;
     users_db[i].socket_fd = -1;
 
@@ -525,7 +525,7 @@ int sendPacket(struct message packet, int receiver_fd){
     char packet_buff[sizeof (struct message)];
 
     int message = sprintf(packet_buff, "\n%d:%d:%s:%s", packet.type, packet.size, packet.source, packet.data);
-    printf("sent to client: %s \n", packet_buff);
+    //printf("sent to client: %s \n", packet_buff);
     int len = sizeof(packet_buff);
 
     //send: to client
@@ -567,7 +567,7 @@ struct message stringToPacket(char * buffer){
     pack.size = atoi(size);
     current_char += 1;
 
-    printf("\nReceived packet type: %d, size: %d\n", pack.type, pack.size);
+    //printf("\nReceived packet type: %d, size: %d\n", pack.type, pack.size);
 
     char source[1] = {0};
     while(current_char[0] != ':'){
@@ -576,7 +576,7 @@ struct message stringToPacket(char * buffer){
     }
 
     strcpy(pack.source, source);
-    printf("source: %s\n", pack.source);
+    //printf("source: %s\n", pack.source);
     current_char += 1;
 
     //data
@@ -585,7 +585,7 @@ struct message stringToPacket(char * buffer){
         current_char += 1;
     }
 
-    printf("data: %s\n", pack.data);
+    //printf("data: %s\n", pack.data);
 
     return pack;
 }
