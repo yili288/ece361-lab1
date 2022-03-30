@@ -113,7 +113,6 @@ int main(int argc, char *argv[]) {
          else if (strcmp(command, "/joinsession") == 0 && logged_in == 1) {
             char session_to_join[MAX_GENRAL]; 
             scanf("%s", session_to_join);
-            printf("join \n");
             joinsession(session_to_join);
          }
 
@@ -125,10 +124,8 @@ int main(int argc, char *argv[]) {
 
          // create
          else if (strcmp(command, "/createsession") == 0 && logged_in == 1) {
-
-            // check if you're in a session already
             if (strcmp(session_ID, "0") != 0) {
-               printf("Unable to create session: already in a session");
+               printf("Already in a session, can't create.");
             }
             else {
                char new_session[MAX_GENRAL]; 
