@@ -35,6 +35,8 @@ char client_ID[MAX_GENRAL]  = "0";
 char password[MAX_GENRAL]   = "0";
 char session_ID[MAX_GENRAL] = "0"; 
 
+char sessions[10][MAX_GENRAL];
+
 fd_set master;    // master file descriptor list
 fd_set read_fds;  // temp file descriptor list for select()
 int fdmax;        // maximum file descriptor number
