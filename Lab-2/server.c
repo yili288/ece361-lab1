@@ -345,54 +345,57 @@ int join(struct message packet, int receiver_fd){
         }
     }
 
-    if(sessionExists){
-        int i = (int)*packet.source - (int)'a'; 
-                if(users_db[i].isActive){
-                    if(users_db[i].session_id == NULL){
-                        char * ptr = malloc(sizeof(packet.data));
-                        strcpy(ptr, packet.data);
-                        users_db[i].session_id = ptr;
-                    }else{
-                        //JN_NAK
-                        //already in a session
-                        packet.type = 6;
-                        strcpy(packet.data, "user already in a session");
-                        packet.size = strlen(packet.data);
-                        sendPacket(packet, receiver_fd);
-                        return -1;
-                    }
+    
+    int i = (int)*packet.source - (int)'a'; 
+    if(users_db[i].isActive){
+        if(users_db[i].session_id == NULL){
+            char * ptr = malloc(sizeof(packet.data));
+            strcpy(ptr, packet.data);
+            users_db[i].session_id = ptr;
+        }else{
+            //JN_NAK
+            //already in a session
+            packet.type = 6;
+            strcpy(packet.data, "user already in a session");
+            packet.size = strlen(packet.data);
+            sendPacket(packet, receiver_fd);
+            return -1;
+        }
 
-                    //find session and add num of ppl
-                    for(int i=0; i < NUM_ACC; i++){
-                        if(sessions_db[i].session_id != NULL && strcmp(sessions_db[i].session_id, packet.data) == 0){
-                            sessions_db[i].num_ppl += 1;
-                            //JN_ACK
-                            packet.type = 5;
-                            packet.size = strlen(packet.data);
-                            sendPacket(packet, receiver_fd);
-                            return 1;
-                        }
-                    }      
-
-                }else{
-                    //JN_NAK
-                    //user not active
-                    packet.type = 6;
-                    strcpy(packet.data, "account not active, please login");
+        if(sessionExists){
+            //find session and add num of ppl
+            for(int i=0; i < NUM_ACC; i++){
+                if(sessions_db[i].session_id != NULL && strcmp(sessions_db[i].session_id, packet.data) == 0){
+                    sessions_db[i].num_ppl += 1;
+                    //JN_ACK
+                    packet.type = 5;
                     packet.size = strlen(packet.data);
                     sendPacket(packet, receiver_fd);
+                    return 1;
                 }
-                
+            }    
+        }else{
+            //JN_NAK
+            //session does not exists
+            packet.type = 6;
+            strcpy(packet.data, "session does not exists");
+            packet.size = strlen(packet.data);
+            sendPacket(packet, receiver_fd);
+        }
             
-        
+
     }else{
         //JN_NAK
-        //user not exists
+        //user not active
         packet.type = 6;
-        strcpy(packet.data, "session does not exists");
+        strcpy(packet.data, "account not active, please login");
         packet.size = strlen(packet.data);
         sendPacket(packet, receiver_fd);
     }
+    
+            
+        
+    
     return -1;
 
 }

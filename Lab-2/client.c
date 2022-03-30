@@ -351,11 +351,7 @@ int logout() {
 
 // join
 int joinsession(char* session_to_join) {
-   // check if user in session already, only 1 session allowed
-   if (strcmp(session_ID, "0") != 0){
-      printf("INVALID: Currently in a session");
-      return 0;
-   }
+   
    strcpy(session_ID, session_to_join);
    
    // send join details to server
@@ -373,8 +369,6 @@ int joinsession(char* session_to_join) {
    printf("sent success\n");
 
    receive(1);
-   
-   printf("In session %s", session_ID);
    
    return 0;
 }
@@ -557,10 +551,12 @@ void receive(int sent_type) {
          // join session sent_type = 1
          else if (received.type == 5 && sent_type == 1) {
             printf("Successfully joined session\n");
+            printf("In session %s", session_ID);
             return;
          }
          else if (received.type == 6 && sent_type == 1){
             printf("Unable to join %s: %s \n", session_ID, received.data);
+            strcpy(session_ID, "0");
             return;
          }
 
