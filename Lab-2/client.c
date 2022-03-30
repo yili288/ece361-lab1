@@ -131,7 +131,7 @@ int main(int argc, char *argv[]) {
 
             // check if you're in a session already
             if (strcmp(session_ID, "0") != 0) {
-               printf("Unable to create session: already in a session");
+               printf("Unable to create session: already in a session\n");
             }
             else {
                char new_session[MAX_GENRAL]; 
