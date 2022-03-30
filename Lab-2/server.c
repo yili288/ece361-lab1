@@ -353,7 +353,13 @@ int join(struct message packet, int receiver_fd){
                         strcpy(ptr, packet.data);
                         users_db[i].session_id = ptr;
                     }else{
-                        strcpy(users_db[i].session_id, packet.data);
+                        //JN_NAK
+                        //already in a session
+                        packet.type = 6;
+                        strcpy(packet.data, "user already in a session");
+                        packet.size = strlen(packet.data);
+                        sendPacket(packet, receiver_fd);
+                        return -1;
                     }
 
                     //find session and add num of ppl
