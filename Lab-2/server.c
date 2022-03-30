@@ -177,18 +177,20 @@ int main(int argc, char *argv[]) {
                         if (nbytes == 0) {
                             // connection closed
                             printf("selectserver: socket %d hung up\n", i);
+
+                            for(int j=0; j < NUM_ACC ; j++){
+                                if(users_db[j].socket_fd == i){   //reset user info
+                                    users_db[j].name = ' ';
+                                    users_db[j].session_id = NULL;
+                                    users_db[j].socket_fd = -1;
+                                    users_db[j].isActive = false;
+                                }
+                            }
                         } else {
                             perror("recv");
                         }
 
-                        for(int i=0; i < NUM_ACC ; i++){
-                            if(users_db[i].socket_fd == i){   //reset user info
-                                users_db[i].name = ' ';
-                                users_db[i].session_id = NULL;
-                                users_db[i].socket_fd = -1;
-                                users_db[i].isActive = false;
-                            }
-                        }
+                        
                         
                         close(i); // bye!
                         FD_CLR(i, &master); // remove from master set
@@ -316,6 +318,7 @@ int exit_conf(struct message packet, int receiver_fd){
         if(users_db[i].session_id != NULL && sessions_db[i].session_id != NULL
             && strcmp(sessions_db[i].session_id, users_db[i].session_id) == 0){
             sessions_db[i].num_ppl -= 1;
+            free(users_db[i].session_id);
             users_db[i].session_id = NULL;
         }
 
@@ -418,6 +421,7 @@ int leave_sess(struct message packet, int receiver_fd){
         }
     }
 
+    free(users_db[i].session_id);
     users_db[i].session_id = NULL;
         
     

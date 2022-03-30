@@ -146,6 +146,7 @@ int main(int argc, char *argv[]) {
 
          // quit
          else if (strcmp(command, "/quit") == 0) {
+            logout();
             printf("Quitting the program \n");
             close(current_socket);
             return 0;
