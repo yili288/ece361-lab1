@@ -232,7 +232,23 @@ int main(int argc, char *argv[]) {
                printf("%s: %s\n", msg_received.source, msg_received.data);
             }   
             else if (msg_received.type == 16) {
-               printf("%s %s: %s %s\n", KGRN, msg_received.source, msg_received.data, KWHT);
+               //divde packet.data into receiver & message
+               const char s[2] = ":";
+               char *token;
+               char receiver[10];
+               char actual_msg[100];
+               
+               /* get the first token */
+               token = strtok(msg_received.data, s);
+               strcpy(receiver,token);
+
+               /* walk through other tokens */
+               token = strtok(NULL, s);
+               strcpy(actual_msg, token);
+
+               //end of string division
+               
+               printf("%s %s: %s %s\n", KGRN, msg_received.source, actual_msg, KWHT);
             }               
          }
       }
@@ -423,7 +439,7 @@ int send_data (struct message packet) {
    char packet_buffer[sizeof (struct message)];
       
    int message = sprintf(packet_buffer, "\n%d:%d:%s:%s", packet.type, packet.size, packet.source, packet.data);
-
+   printf("sent: %s\n", packet_buffer);
    if((num_bytes = send(current_socket, packet_buffer, sizeof(packet_buffer), 0)) == -1) { 
       printf("send error");
    }
