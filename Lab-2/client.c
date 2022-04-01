@@ -11,6 +11,8 @@
 #include <netdb.h>
 #include "message.h"
 #include <time.h>
+#define KGRN  "\x1B[32m"
+#define KWHT  "\x1B[37m"
 
 /* TESTING
 /login a aa 128.100.13.250 1055
@@ -228,6 +230,9 @@ int main(int argc, char *argv[]) {
 
             if (msg_received.type == 10) {
                printf("%s: %s\n", msg_received.source, msg_received.data);
+            }   
+            else if (msg_received.type == 16) {
+               printf("%s %s: %s %s\n", KGRN, msg_received.source, msg_received.data, KWHT);
             }               
          }
       }
