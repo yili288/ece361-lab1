@@ -12,7 +12,7 @@
 #include "message.h"
 
 
-#define NUM_ACC 20
+#define NUM_ACC 30
 #define MAX_SESSION_NAME 30
 #define MAX_ONQUEUE 20
 
@@ -263,7 +263,7 @@ int login(struct message packet, int receiver_fd){
         
         if(strstr(username, packet.source) != NULL ){ //user exists
             int idx = username[0] - 'a'; 
-            printf("database: %s\n", username);   
+            printf("find username: %s\n", username);   
 
             //check password
             if(strstr(passw, packet.data) != NULL ){
@@ -339,7 +339,7 @@ int newAccount(struct message packet, int receiver_fd){  //registration does not
         fprintf(accs, "%s %s\n", packet.source, packet.data);
         packet.type = 14;
         strcpy(packet.data, "0");
-        packet.size = sizeof(packet.data);
+        packet.size = strlen(packet.data);
         sendPacket(packet, receiver_fd);
         fclose(accs);
         return 1;
@@ -578,9 +578,10 @@ int privateMsg(struct message packet, int source_fd){
 //User2: 5,6,7
 
 int getActiveUserSessions(struct message packet, int receiver_fd){
-    char all_info[1000] = {};
+    char all_info[1000] = "";
 
     for(int i=0; i < NUM_ACC; i++){
+        //printf("user %c is %d", users_db[i].name, users_db[i].isActive);
         if(users_db[i].isActive){
             strcat(all_info, &users_db[i].name);
             strcat(all_info, ":");

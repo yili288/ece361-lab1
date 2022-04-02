@@ -546,7 +546,6 @@ void receive(int sent_type) {
       // register sent_type = 4
       else if (received.type == 14 && sent_type == 0) {
          printf("Successfully registered\n");
-         logged_in = 1;
       }
       else if (received.type == 15 && sent_type == 0) {
          printf("Unable to register: %s \n", received.data);
