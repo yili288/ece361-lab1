@@ -47,15 +47,9 @@ Clients can send private messages to each other, regardless of which session the
 
 
 New Packet Types:
-Type
-	Type number
-	Packet Data
-	PM
-	16
-	<receiver username> <message>
-	Has no ACK or NACK 
-	N/A
-	N/A
+    Type                Type number   Packet Data
+	PM                   16            <receiver username> <message>
+	Has no ACK or NACK   N/A N/A
 	
 
 Serialised packet format looks like this
