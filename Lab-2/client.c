@@ -135,7 +135,6 @@ int main(int argc, char *argv[]) {
 
          // list
          else if (strcmp(command, "/list") == 0 && logged_in == 1) {
-            //printf("list \n");
             list_all();
          }
 
@@ -439,7 +438,7 @@ int send_data (struct message packet) {
    char packet_buffer[sizeof (struct message)];
       
    int message = sprintf(packet_buffer, "\n%d:%d:%s:%s", packet.type, packet.size, packet.source, packet.data);
-   printf("sent: %s\n", packet_buffer);
+   // printf("sent: %s\n", packet_buffer);
    if((num_bytes = send(current_socket, packet_buffer, sizeof(packet_buffer), 0)) == -1) { 
       printf("send error");
    }
