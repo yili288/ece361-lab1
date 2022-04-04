@@ -33,13 +33,14 @@ int sendPacket(struct message packet, int receiver_fd);
 
 
 typedef struct client {
-    char name;
+    char* name;
     char* session_id;  
     int socket_fd;
     bool isActive;
 } Client;
 
 Client users_db[NUM_ACC];
+int lastUserIndex = 0;
 
 typedef struct session {
     char* session_id;
@@ -76,10 +77,25 @@ int main(int argc, char *argv[]) {
     //make user database
     
     for(int i=0; i < NUM_ACC; i++){
-        users_db[i].name = ' ';
+        users_db[i].name = NULL;
         users_db[i].session_id = NULL;
         users_db[i].socket_fd = -1;
         users_db[i].isActive = false;
+    }
+
+    FILE* accs;
+    char username[10];
+    char passw[10];
+
+    accs = fopen("accounts.txt", "r");
+
+    int j = 0;
+    while(fscanf(accs,"%s %s\n", username, passw) != EOF){
+        char * ptr = malloc(sizeof(username));
+        strcpy(ptr, username);
+        users_db[j].name = ptr;
+        j++;
+        lastUserIndex++;
     }
 
     for(int i=0; i < NUM_ACC; i++){
@@ -183,7 +199,7 @@ int main(int argc, char *argv[]) {
 
                             for(int j=0; j < NUM_ACC ; j++){
                                 if(users_db[j].socket_fd == i){   //reset user info
-                                    users_db[j].name = ' ';
+                                    users_db[j].name = NULL;
                                     users_db[j].session_id = NULL;
                                     users_db[j].socket_fd = -1;
                                     users_db[j].isActive = false;
@@ -226,7 +242,7 @@ int main(int argc, char *argv[]) {
                             //query
                             getActiveUserSessions(recv_packet, i);
                         }else if(recv_packet.type == 13){
-                            printf("correct\n");
+                            //printf("correct\n");
                             newAccount(recv_packet, i);
                         }else if(recv_packet.type == 16){
                             privateMsg(recv_packet, i);
@@ -258,61 +274,68 @@ int login(struct message packet, int receiver_fd){
     char passw[10];
 
     accs = fopen("accounts.txt", "r");
+    
 
     while(fscanf(accs,"%s %s\n", username, passw) != EOF){
-        
-        if(strstr(username, packet.source) != NULL ){ //user exists
-            int idx = username[0] - 'a'; 
-            printf("find username: %s\n", username);   
+        if(strcmp(username, packet.source) == 0){
 
-            //check password
-            if(strstr(passw, packet.data) != NULL ){
-                if(users_db[idx].isActive == false){
-                    users_db[idx].isActive = true;
-                    users_db[idx].socket_fd = receiver_fd;
-                    //printf("saved value %d\n", users_db[idx].socket_fd);
-                    users_db[idx].name = username[0];
-                    /*char * ptr = malloc(sizeof(username[0]));
-                    strcpy(ptr, username);
-                    users_db[idx].name = ptr;*/
+         for(int idx=0; idx< NUM_ACC; idx++){  //account exists in file
+            if(strcmp(users_db[idx].name, packet.source) == 0){  //get index
+                //if(strstr(username, packet.source) != NULL ){ //user exists
+                //int idx = username[0] - 'a'; 
 
-                    //send LO_ACK
-                    ack_pack.type = 1;
-                    strcpy(ack_pack.data, "0");
-                    ack_pack.size = 1;
-                    sendPacket(ack_pack, receiver_fd);
-                    fclose(accs);
-                    return 1;
+                //check password
+                printf("pass %s %s", passw, packet.data);
+                if(strstr(passw, packet.data) != NULL ){
+                    if(users_db[idx].isActive == false){
+                        users_db[idx].isActive = true;
+                        users_db[idx].socket_fd = receiver_fd;
+                        //printf("saved value %d\n", users_db[idx].socket_fd);
+                        
+                        //send LO_ACK
+                        ack_pack.type = 1;
+                        strcpy(ack_pack.data, "0");
+                        ack_pack.size = 1;
+                        sendPacket(ack_pack, receiver_fd);
+                        fclose(accs);
+                        return 1;
+                    }else{
+                        //send LO_NACK
+                        ack_pack.type = 2;
+                        strcpy(ack_pack.data, "user already logged in");
+                        ack_pack.size = sizeof(ack_pack.data);
+                        sendPacket(ack_pack, receiver_fd);
+                        fclose(accs);
+                        return -1;
+                    }
                 }else{
+                    //password is wrong
                     //send LO_NACK
                     ack_pack.type = 2;
-                    strcpy(ack_pack.data, "user already logged in");
+                    strcpy(ack_pack.data, "wrong password");
                     ack_pack.size = sizeof(ack_pack.data);
                     sendPacket(ack_pack, receiver_fd);
                     fclose(accs);
                     return -1;
                 }
-            }else{
-                //password is wrong
-                //send LO_NACK
-                ack_pack.type = 2;
-                strcpy(ack_pack.data, "wrong password");
-                ack_pack.size = sizeof(ack_pack.data);
-                sendPacket(ack_pack, receiver_fd);
-                fclose(accs);
-                return -1;
-            }
-            
-        }  
+                
+            }  
+         }
+        }
     }
+
+  
+            //
+            //send LO_NACK
+            ack_pack.type = 2;
+            strcpy(ack_pack.data, "user account not found");
+            ack_pack.size = sizeof(ack_pack.data);
+            sendPacket(ack_pack, receiver_fd);
+            fclose(accs);
+            return -1;
+        
     
-    //send LO_NACK
-    ack_pack.type = 2;
-    strcpy(ack_pack.data, "user account not found");
-    ack_pack.size = sizeof(ack_pack.data);
-    sendPacket(ack_pack, receiver_fd);
-    fclose(accs);
-    return -1;
+    
 
 }
 
@@ -328,18 +351,30 @@ int newAccount(struct message packet, int receiver_fd){  //registration does not
         if(strstr(username, packet.source) != NULL ){ //user exists
             packet.type = 15;
             strcpy(packet.data, "username already exists");
-            packet.size = sizeof(packet.data);
+            packet.size = strlen(packet.data);
             sendPacket(packet, receiver_fd);
             fclose(accs);
             return -1;
         }
     }
 
-    if(accs!= 0){
+    if(accs!= 0){ //user doesnt exist
         fprintf(accs, "%s %s\n", packet.source, packet.data);
+
+        char * ptr = malloc(sizeof(packet.source));
+        //printf("source %s\n", packet.source);
+        strcpy(ptr, packet.source);
+
+        users_db[lastUserIndex].name = ptr;
+        users_db[lastUserIndex].session_id = NULL;
+        users_db[lastUserIndex].socket_fd = receiver_fd;
+        users_db[lastUserIndex].isActive = false;
+        lastUserIndex++;
+        
         packet.type = 14;
         strcpy(packet.data, "0");
         packet.size = strlen(packet.data);
+        //printf("sending to %d", receiver_fd);
         sendPacket(packet, receiver_fd);
         fclose(accs);
         return 1;
@@ -353,10 +388,16 @@ int newAccount(struct message packet, int receiver_fd){  //registration does not
 int exit_conf(struct message packet, int receiver_fd){
 
     //printf("exit func: %s %d\n", packet.source, (int)'a');
-    int i = (int)packet.source[0] - (int)'a';
+    //int i = (int)packet.source[0] - (int)'a';
     //printf("user location %d\n", i); 
-    users_db[i].isActive = false;
-    users_db[i].socket_fd = -1;
+
+    for(int idx=0; idx< NUM_ACC; idx++){
+        if(users_db[idx].name != NULL && strcmp(users_db[idx].name, packet.source) == 0){
+            users_db[idx].isActive = false;
+            users_db[idx].socket_fd = -1;
+        }
+    }
+    
 
     for(int i=0; i < NUM_ACC; i++){
         if(users_db[i].session_id != NULL && sessions_db[i].session_id != NULL
@@ -393,7 +434,15 @@ int join(struct message packet, int receiver_fd){
     }
 
     
-    int i = (int)*packet.source - (int)'a'; 
+    //int i = (int)*packet.source - (int)'a'; 
+    int i = 0;
+    for(int idx=0; idx< NUM_ACC; idx++){
+        if(strcmp(users_db[idx].name, packet.source) == 0){
+            i = idx;
+            break;
+        }
+    }
+
     if(users_db[i].isActive){
         if(users_db[i].session_id == NULL){
             char * ptr = malloc(sizeof(packet.data));
@@ -453,7 +502,7 @@ int join(struct message packet, int receiver_fd){
 int leave_sess(struct message packet, int receiver_fd){
 
     
-    int i = (int)*packet.source - (int)'a'; 
+    //int i = (int)*packet.source - (int)'a'; 
 
     for(int i=0; i < NUM_ACC; i++){
         if(sessions_db[i].session_id != NULL && strcmp(sessions_db[i].session_id, packet.data) == 0){
@@ -465,8 +514,14 @@ int leave_sess(struct message packet, int receiver_fd){
         }
     }
 
-    free(users_db[i].session_id);
-    users_db[i].session_id = NULL;
+    for(int idx=0; idx< NUM_ACC; idx++){
+        if(strcmp(users_db[idx].name, packet.source) == 0){
+            free(users_db[idx].session_id);
+            users_db[idx].session_id = NULL;
+            break;
+        }
+    }
+    
         
     
             
@@ -477,7 +532,15 @@ int leave_sess(struct message packet, int receiver_fd){
 //fill it with information (session id, num ppl = 1)
 //success: NS_ACK
 int new_sess(struct message packet, int receiver_fd){
-    int index = (int)*packet.source - (int)'a'; 
+    //int index = (int)*packet.source - (int)'a'; 
+
+    int index = 0;
+    for(int idx=0; idx< NUM_ACC; idx++){
+        if(strcmp(users_db[idx].name, packet.source) == 0){
+            index = idx;
+            break;
+        }
+    }
 
     for(int i=0; i < NUM_ACC; i++){
         if(users_db[i].isActive == true && sessions_db[i].session_id == NULL){
@@ -513,14 +576,24 @@ int new_sess(struct message packet, int receiver_fd){
 //get all users with this session id
 int broadcast(struct message packet, int receiver_fd){
 
-    int index = (int)*packet.source - (int)'a';
+    //int index = (int)*packet.source - (int)'a';
+    
+
+    int index = 0;
+    for(int idx=0; idx< NUM_ACC; idx++){
+        if(strcmp(users_db[idx].name, packet.source) == 0){
+            index = idx;
+            break;
+        }
+    }
+
     char* session = users_db[index].session_id;
     //packet.source stays the same because the receiver needs to know who the sender is
 
     for(int i=0; i < NUM_ACC; i++){
         if(users_db[i].session_id != NULL && strcmp(users_db[i].session_id, session) == 0){
             
-            if(users_db[i].name != packet.source[0]){
+            if(strcmp(users_db[i].name,packet.source) != 0){
                 packet.type = 10;
                 //packet data kept the same
                 printf("message reply data: %s\n", packet.data);
@@ -554,7 +627,7 @@ int privateMsg(struct message packet, int source_fd){
 
     //receiver_fd
     for(int i=0; i < NUM_ACC; i++){
-        if(strcmp(&users_db[i].name, receiver) == 0){
+        if(users_db[i].name != NULL && strcmp(users_db[i].name, receiver) == 0){
             //found!
             receiver_fd = users_db[i].socket_fd;
         }
@@ -583,7 +656,7 @@ int getActiveUserSessions(struct message packet, int receiver_fd){
     for(int i=0; i < NUM_ACC; i++){
         //printf("user %c is %d", users_db[i].name, users_db[i].isActive);
         if(users_db[i].isActive){
-            strcat(all_info, &users_db[i].name);
+            strcat(all_info, users_db[i].name);
             strcat(all_info, ":");
             if(users_db[i].session_id == NULL){
                 strcat(all_info, "no session");
@@ -613,6 +686,7 @@ int sendPacket(struct message packet, int receiver_fd){
 
     //send: to client
     int send_res = send(receiver_fd, packet_buff, len, 0);
+    //printf("recv %d", receiver_fd);
     if(send_res < 0){
         printf("send error\n");
         return -1;
@@ -650,9 +724,9 @@ struct message stringToPacket(char * buffer){
     pack.size = atoi(size);
     current_char += 1;
 
-    printf("\nReceived packet type: %d, size: %d\n", pack.type, pack.size);
+    //printf("\nReceived packet type: %d, size: %d\n", pack.type, pack.size);
 
-    char source[1] = {0};
+    char source[10] = "";
     while(current_char[0] != ':'){
         strncat(source,current_char,1);
         current_char += 1;

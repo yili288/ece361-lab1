@@ -1,4 +1,4 @@
-#define MAX_NAME 4
+#define MAX_NAME 10
 #define MAX_DATA 600
 #define MAX_GENRAL 200
 

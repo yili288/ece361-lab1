@@ -89,7 +89,7 @@ int main(int argc, char *argv[]) {
             char server_IP[MAX_GENRAL];
             char server_port[MAX_GENRAL]; 
             scanf("%s %s %s %s", client_ID, password, server_IP, server_port);
-            
+            printf("%s %s %s %s", client_ID, password, server_IP, server_port);
             int l_or_r = 0; // 0 means login
 
             if (strcmp(command, "/register") == 0){   
@@ -438,7 +438,8 @@ int send_data (struct message packet) {
    char packet_buffer[sizeof (struct message)];
       
    int message = sprintf(packet_buffer, "\n%d:%d:%s:%s", packet.type, packet.size, packet.source, packet.data);
-   // printf("sent: %s\n", packet_buffer);
+   //printf("sent: %s\n", packet_buffer);
+   
    if((num_bytes = send(current_socket, packet_buffer, sizeof(packet_buffer), 0)) == -1) { 
       printf("send error");
    }
@@ -550,15 +551,5 @@ void receive(int sent_type) {
          printf("Unable to register: %s \n", received.data);
       }
       
-      else if (sent_type = 2){
-         printf("Unable to create session \n");
-         return;
-      }
-
-      
-      else if (sent_type == 3) {
-         printf("Unable to receive requested list \n");
-         return;
-      }
    }
 }

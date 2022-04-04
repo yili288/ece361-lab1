@@ -57,7 +57,7 @@ target client, and it must be clear who the sender is.
 New Packet Types:
     Type                Type number   Packet Data
 	PM                   16            <receiver username> <message>
-	Has no ACK or NACK   N/A N/A
+	Has no ACK or NACK   N/A            N/A
 	
 
 Serialised packet format looks like this
