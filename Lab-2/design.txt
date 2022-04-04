@@ -3,7 +3,8 @@ By: Yi Li Ng & Shauda Islam
 
 
 User Registration
-If a client does not already have a username and password to  log in with, it can register with the server to create an account. This login information is persistent.
+If a client does not already have a username and password to  log in with, it can register 
+with the server to create an account. This login information is persistent.
 
 
 New Packet Types:
@@ -20,7 +21,8 @@ type:size:newUsername:newPassword
 Server
 1. Convert the packet into a message struct
 2. Checks if the username already exists by looking through the account database text file.
-3. If the username is not used yet, the server saves the new username and new password into the accounts database text file
+3. If the username is not used yet, the server saves the new username and new password 
+into the accounts database text file
 4. And sends an ACK to the client if a successful account is made
 5. Otherwise the server sends the client a NACK with a reason for the failure
 
@@ -34,16 +36,22 @@ Client
 2. A connection is created with the server using server ID and server port
 3. A packet is created in the following form:
 type:size:newUsername:newPassword  
-where the type is REGISTER, size is calculated based on length of data, and the client ID and password are from the user input 
+where the type is REGISTER, size is calculated based on length of data, and the 
+client ID and password are from the user input 
 4. The packet is sent to the server to be processed 
    1. REG_ACK is sent if the user has successfully been registered 
    2. REG_NACK is sent is user has not been successfully registered 
 5. The ACK/NACK message is displayed
 
 
-Note: This feature only creates a new account, it does not login the user. If the user would like to login and they must login after registering.
+Note: This feature only creates a new account, it does not login the user. If the 
+user would like to login and they must login after registering.
+
+
 Private Messaging (PM)
-Clients can send private messages to each other, regardless of which session the sender and receiver are in (if any). Private messages are only viewable by the target client, and it must be clear who the sender is.
+Clients can send private messages to each other, regardless of which session the 
+sender and receiver are in (if any). Private messages are only viewable by the 
+target client, and it must be clear who the sender is.
 
 
 New Packet Types:
@@ -70,10 +78,13 @@ Sender
 The receiverUsername and message data are stored together in a string
 2. A packet is created in the following form:
 type:size :source:password:receiverUsername:message  
-where the type is PM, size is calculated based on length of data, source is the client ID, and the data is the receiverUsername and message data 
+where the type is PM, size is calculated based on length of data, source is 
+the client ID, and the data is the receiverUsername and message data 
 3. The packet is sent to the server to be processed and sent to the receiver 
 4. There are no ACK/NACK so no message is displayed to indicate success/failure
 
 
 Receiver
-1. Receives packet from server and prints the data which includes the senderUsername and the message in green colour in the terminal. The colour is used to indicate that it is a private message.
+1. Receives packet from server and prints the data which includes the 
+senderUsername and the message in green colour in the terminal. The colour 
+is used to indicate that it is a private message.
